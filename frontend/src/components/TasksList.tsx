@@ -6,9 +6,11 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import { Plus, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Plus, CheckCircle, AlertTriangle, BarChart3, RotateCcw } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { API_ENDPOINTS, apiCall } from '../config/api';
+import { TaskStats } from './TaskStats';
+import { toast } from 'sonner@2.0.3';
 
 interface TasksListProps {
   accessToken: string;
@@ -20,12 +22,16 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [statsTask, setStatsTask] = useState<any | null>(null);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     period: 'daily',
     penaltyAmount: '',
     penaltyRecipientId: '',
+    startDate: new Date().toISOString().split('T')[0], // Default to today
+    endDate: '', // Optional
   });
 
   useEffect(() => {
@@ -71,6 +77,8 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
         period: 'daily',
         penaltyAmount: '',
         penaltyRecipientId: '',
+        startDate: new Date().toISOString().split('T')[0], // Default to today
+        endDate: '', // Optional
       });
       fetchTasks();
     } catch (error) {
@@ -83,10 +91,30 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
       await apiCall(API_ENDPOINTS.completeTask(taskId), {
         method: 'POST',
       });
+      toast.success('Task completed! 🎉');
       fetchTasks();
     } catch (error) {
       console.error('Error completing task:', error);
+      toast.error('Failed to complete task');
     }
+  };
+
+  const handleUncompleteTask = async (taskId: string) => {
+    try {
+      await apiCall(API_ENDPOINTS.uncompleteTask(taskId), {
+        method: 'POST',
+      });
+      toast.success('Task completion reset');
+      fetchTasks();
+    } catch (error) {
+      console.error('Error uncompleting task:', error);
+      toast.error('Failed to reset task');
+    }
+  };
+
+  const handleViewStats = (task: any) => {
+    setStatsTask(task);
+    setStatsDialogOpen(true);
   };
 
   const isTaskCompletedToday = (task: any) => {
@@ -189,6 +217,29 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
                   <p className="text-sm text-gray-500">Add friends first to select a recipient</p>
                 )}
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+                <p className="text-xs text-gray-500">When should this task begin?</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date (Optional)</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  min={formData.startDate ? new Date(new Date(formData.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-gray-500">Leave blank for ongoing task</p>
+              </div>
               <Button type="submit" className="w-full" disabled={friends.length === 0}>
                 Create Task
               </Button>
@@ -234,13 +285,39 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
                     <div className="text-sm text-gray-600">
                       Completed: {task.completedDates?.length || 0} times
                     </div>
+                    {(task.startDate || task.endDate) && (
+                      <div className="text-sm text-gray-600">
+                        {task.startDate && <div>Starts: {new Date(task.startDate).toLocaleDateString()}</div>}
+                        {task.endDate && <div>Ends: {new Date(task.endDate).toLocaleDateString()}</div>}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => handleCompleteTask(task.id)}
+                        disabled={completedToday}
+                        className="w-full"
+                        variant={completedToday ? 'secondary' : 'default'}
+                      >
+                        {completedToday ? 'Completed ✓' : 'Mark Complete'}
+                      </Button>
+                      <Button
+                        onClick={() => handleUncompleteTask(task.id)}
+                        disabled={!completedToday}
+                        className="w-full"
+                        variant="outline"
+                        size="sm"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        Reset
+                      </Button>
+                    </div>
                     <Button
-                      onClick={() => handleCompleteTask(task.id)}
-                      disabled={completedToday}
+                      onClick={() => handleViewStats(task)}
                       className="w-full"
-                      variant={completedToday ? 'secondary' : 'default'}
+                      variant="outline"
                     >
-                      {completedToday ? 'Completed Today' : 'Mark Complete'}
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      View Stats & Calendar
                     </Button>
                   </div>
                 </CardContent>
@@ -248,6 +325,15 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
             );
           })}
         </div>
+      )}
+
+      {/* Stats Dialog */}
+      {statsTask && (
+        <TaskStats
+          task={statsTask}
+          open={statsDialogOpen}
+          onOpenChange={setStatsDialogOpen}
+        />
       )}
     </div>
   );

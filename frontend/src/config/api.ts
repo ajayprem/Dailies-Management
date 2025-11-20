@@ -20,6 +20,8 @@ export const API_ENDPOINTS = {
   getTasks: `${API_BASE_URL}/tasks`,
   createTask: `${API_BASE_URL}/tasks`,
   completeTask: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/complete`,
+  uncompleteTask: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/uncomplete`,
+  getTaskStats: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/stats`,
   applyTaskPenalty: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/penalty`,
   
   // Challenges
@@ -46,7 +48,7 @@ export async function apiCall(
   };
   
   if (token) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
   
   try {

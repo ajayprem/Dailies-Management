@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.ChallengeDto;
-import com.ajayprem.habittracker.service.InMemoryBackendService;
+import com.ajayprem.habittracker.service.BackendService;
 
 @RestController
 @RequestMapping("/api/challenges")
 public class ChallengesController {
 
     @Autowired
-    private InMemoryBackendService svc;
+    private BackendService svc;
 
     @GetMapping("")
     public ResponseEntity<?> getChallenges(@RequestHeader(value = "Authorization", required = false) String authorization) {

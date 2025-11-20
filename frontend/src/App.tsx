@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { Dashboard } from './components/Dashboard';
+import { Toaster } from './components/ui/sonner';
 
 export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -51,5 +52,10 @@ export default function App() {
     return <AuthForm onAuthSuccess={handleAuthSuccess} />;
   }
 
-  return <Dashboard accessToken={accessToken} userId={userId} onLogout={handleLogout} />;
+  return (
+    <>
+      <Dashboard accessToken={accessToken} userId={userId} onLogout={handleLogout} />
+      <Toaster />
+    </>
+  );
 }

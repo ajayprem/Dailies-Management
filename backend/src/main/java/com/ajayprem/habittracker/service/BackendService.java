@@ -36,7 +36,90 @@ import com.ajayprem.habittracker.repository.UserRepository;
 
 @Service
 @Transactional
-public class InMemoryBackendService {
+public class BackendService {
+    // --- New Feature: Task Reset (Uncomplete) ---
+    public boolean uncompleteTask(String userIdStr, String taskIdStr) {
+        Long tid = Long.parseLong(taskIdStr);
+        Optional<Task> ot = taskRepository.findById(tid);
+        if (ot.isEmpty()) return false;
+        Task t = ot.get();
+        if (!Objects.equals(String.valueOf(t.getUser().getId()), userIdStr)) return false;
+        String today = LocalDate.now().toString();
+        if (t.getCompletedDates().contains(today)) {
+            t.getCompletedDates().remove(today);
+            taskRepository.save(t);
+            return true;
+        }
+        return false;
+    }
+
+    // --- New Feature: Task Stats ---
+    public Map<String, Object> getTaskStats(String userIdStr, String taskIdStr) {
+        Long tid = Long.parseLong(taskIdStr);
+        Optional<Task> ot = taskRepository.findById(tid);
+        if (ot.isEmpty()) return Map.of();
+        Task t = ot.get();
+        if (!Objects.equals(String.valueOf(t.getUser().getId()), userIdStr)) return Map.of();
+        List<String> completedDates = t.getCompletedDates();
+        int totalCompletions = completedDates.size();
+        int currentStreak = calcCurrentStreak(completedDates);
+        int longestStreak = calcLongestStreak(completedDates);
+        double completionRate = calcCompletionRate(t, completedDates);
+        int totalPenalties = 0; // Optional: implement penalty count if needed
+        double penaltyAmount = t.getPenaltyAmount();
+        return Map.of(
+            "totalCompletions", totalCompletions,
+            "currentStreak", currentStreak,
+            "longestStreak", longestStreak,
+            "completionRate", completionRate,
+            "totalPenalties", totalPenalties,
+            "penaltyAmount", penaltyAmount
+        );
+    }
+
+    // --- Helper Methods for Stats ---
+    private int calcCurrentStreak(List<String> completedDates) {
+        if (completedDates == null || completedDates.isEmpty()) return 0;
+        List<LocalDate> dates = completedDates.stream().map(LocalDate::parse).sorted(Collections.reverseOrder()).toList();
+        int streak = 0;
+        LocalDate today = LocalDate.now();
+        for (LocalDate d : dates) {
+            if (d.equals(today.minusDays(streak))) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    private int calcLongestStreak(List<String> completedDates) {
+        if (completedDates == null || completedDates.isEmpty()) return 0;
+        List<LocalDate> dates = completedDates.stream().map(LocalDate::parse).sorted().toList();
+        int longest = 0, current = 1;
+        for (int i = 1; i < dates.size(); i++) {
+            if (dates.get(i).equals(dates.get(i-1).plusDays(1))) {
+                current++;
+            } else {
+                longest = Math.max(longest, current);
+                current = 1;
+            }
+        }
+        longest = Math.max(longest, current);
+        return longest;
+    }
+
+    private double calcCompletionRate(Task t, List<String> completedDates) {
+        if (completedDates == null || completedDates.isEmpty()) return 0.0;
+        LocalDate created = LocalDate.parse(t.getCreatedAt());
+        LocalDate today = LocalDate.now();
+        long days = java.time.temporal.ChronoUnit.DAYS.between(created, today) + 1;
+        int expectedCompletions = 1;
+        if ("daily".equalsIgnoreCase(t.getPeriod())) expectedCompletions = (int) days;
+        else if ("weekly".equalsIgnoreCase(t.getPeriod())) expectedCompletions = (int) Math.ceil(days / 7.0);
+        else if ("monthly".equalsIgnoreCase(t.getPeriod())) expectedCompletions = (int) Math.ceil(days / 30.0);
+        return expectedCompletions > 0 ? (completedDates.size() * 100.0 / expectedCompletions) : 0.0;
+    }
 
     @Autowired
     private UserRepository userRepository;
@@ -122,6 +205,7 @@ public class InMemoryBackendService {
     public boolean sendFriendRequest(String fromUserIdStr, String friendIdStr) {
         Long fromId = Long.parseLong(fromUserIdStr);
         Long friendId = Long.parseLong(friendIdStr);
+        if (fromId.equals(friendId)) return false;
         Optional<User> of = userRepository.findById(fromId);
         Optional<User> ofr = userRepository.findById(friendId);
         if (of.isEmpty() || ofr.isEmpty()) return false;
@@ -140,19 +224,31 @@ public class InMemoryBackendService {
     }
 
     public boolean acceptFriendRequest(String userIdStr, String requestIdStr) {
-        Long requestId = Long.parseLong(requestIdStr);
+        Long requestId = Long.valueOf(requestIdStr);
         Optional<FriendRequest> ofr = friendRequestRepository.findById(requestId);
         if (ofr.isEmpty()) return false;
         FriendRequest fr = ofr.get();
         if (!Objects.equals(String.valueOf(fr.getToUser().getId()), userIdStr)) return false;
-        fr.setStatus("accepted");
-        friendRequestRepository.save(fr);
         User a = fr.getToUser();
         User b = fr.getFromUser();
         a.getFriends().add(b);
         b.getFriends().add(a);
         userRepository.save(a);
         userRepository.save(b);
+        friendRequestRepository.delete(fr);
+        return true;
+    }
+
+    public boolean deleteFriendRequest(String userIdStr, String requestIdStr) {
+        Long requestId = Long.valueOf(requestIdStr);
+        Optional<FriendRequest> ofr = friendRequestRepository.findById(requestId);
+        if (ofr.isEmpty()) return false;
+        FriendRequest fr = ofr.get();
+        // Only the sender or the recipient may delete the request
+        String fromIdStr = String.valueOf(fr.getFromUser().getId());
+        String toIdStr = String.valueOf(fr.getToUser().getId());
+        if (!Objects.equals(userIdStr, fromIdStr) && !Objects.equals(userIdStr, toIdStr)) return false;
+        friendRequestRepository.delete(fr);
         return true;
     }
 

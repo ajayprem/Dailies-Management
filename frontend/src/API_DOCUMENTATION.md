@@ -273,6 +273,39 @@ Mark a task as complete for today.
 }
 ```
 
+### POST /api/tasks/{taskId}/uncomplete
+
+Remove today's completion for a task (reset/undo completion).
+
+**Headers:** Requires `Authorization`
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+### GET /api/tasks/{taskId}/stats
+
+Get detailed statistics for a specific task.
+
+**Headers:** Requires `Authorization`
+
+**Response:**
+```json
+{
+  "stats": {
+    "totalCompletions": 15,
+    "currentStreak": 3,
+    "longestStreak": 7,
+    "completionRate": 85.5,
+    "totalPenalties": 2,
+    "penaltyAmount": 20.00
+  }
+}
+```
+
 ### POST /api/tasks/{taskId}/penalty
 
 Apply a penalty for an incomplete task.

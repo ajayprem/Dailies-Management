@@ -13,14 +13,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.AuthResponses;
 import com.ajayprem.habittracker.dto.UserProfileDto;
-import com.ajayprem.habittracker.service.InMemoryBackendService;
+import com.ajayprem.habittracker.service.BackendService;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
-    private InMemoryBackendService svc;
+    private BackendService svc;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody Map<String,Object> body) {
@@ -28,7 +28,7 @@ public class AuthController {
         String password = (String) body.get("password");
         String name = (String) body.get("name");
         AuthResponses r = svc.signup(email, password, name);
-        if (r == null) return ResponseEntity.badRequest().body(Map.of("error","user_exists"));
+        if (r == null) return ResponseEntity.badRequest().body(Map.of("error","user exists"));
         return ResponseEntity.ok(r);
     }
 
@@ -37,7 +37,7 @@ public class AuthController {
         String email = (String) body.get("email");
         String password = (String) body.get("password");
         AuthResponses r = svc.login(email, password);
-        if (r == null) return ResponseEntity.status(401).body(Map.of("error","invalid_credentials"));
+        if (r == null) return ResponseEntity.status(401).body(Map.of("error","invalid credentials"));
         return ResponseEntity.ok(r);
     }
 

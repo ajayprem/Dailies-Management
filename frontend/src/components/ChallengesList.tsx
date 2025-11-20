@@ -27,6 +27,8 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
     period: 'daily',
     penaltyAmount: '',
     invitedUserIds: [] as string[],
+    startDate: new Date().toISOString().split('T')[0], // Default to today
+    endDate: '', // Optional
   });
 
   useEffect(() => {
@@ -72,6 +74,8 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
         period: 'daily',
         penaltyAmount: '',
         invitedUserIds: [],
+        startDate: new Date().toISOString().split('T')[0], // Default to today
+        endDate: '', // Optional
       });
       fetchChallenges();
     } catch (error) {
@@ -221,6 +225,29 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                   )}
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+                <p className="text-xs text-gray-500">When should this challenge begin?</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date (Optional)</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  min={formData.startDate ? new Date(new Date(formData.startDate).getTime() + 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-gray-500">Leave blank for ongoing challenge</p>
+              </div>
               <Button type="submit" className="w-full" disabled={friends.length === 0 || formData.invitedUserIds.length === 0}>
                 Create Challenge
               </Button>
@@ -274,6 +301,12 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                     {userParticipant && (
                       <div className="text-sm text-gray-600">
                         You completed: {userParticipant.completedDates?.length || 0} times
+                      </div>
+                    )}
+                    {(challenge.startDate || challenge.endDate) && (
+                      <div className="text-sm text-gray-600">
+                        {challenge.startDate && <div>Starts: {new Date(challenge.startDate).toLocaleDateString()}</div>}
+                        {challenge.endDate && <div>Ends: {new Date(challenge.endDate).toLocaleDateString()}</div>}
                       </div>
                     )}
                     {isInvited ? (

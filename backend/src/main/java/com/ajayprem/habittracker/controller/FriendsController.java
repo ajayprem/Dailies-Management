@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.UserProfileDto;
 import com.ajayprem.habittracker.model.FriendRequest;
-import com.ajayprem.habittracker.service.InMemoryBackendService;
+import com.ajayprem.habittracker.service.BackendService;
 
 @RestController
 @RequestMapping("/api/friends")
 public class FriendsController {
 
     @Autowired
-    private InMemoryBackendService svc;
+    private BackendService svc;
 
     @PostMapping("/request")
     public ResponseEntity<?> requestFriend(@RequestHeader(value = "Authorization", required = false) String authorization,
@@ -67,6 +67,17 @@ public class FriendsController {
         String requestId = body.get("requestId");
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
         boolean ok = svc.acceptFriendRequest(userId, requestId);
+        return ResponseEntity.ok(Map.of("success", ok));
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<?> deleteRequest(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                           @RequestBody Map<String,String> body) {
+        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
+        String userId = svc.getUserIdForToken(token);
+        String requestId = body.get("requestId");
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+        boolean ok = svc.deleteFriendRequest(userId, requestId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 

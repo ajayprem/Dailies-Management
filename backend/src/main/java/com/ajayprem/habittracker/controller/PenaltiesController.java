@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.PenaltyDto;
-import com.ajayprem.habittracker.service.InMemoryBackendService;
+import com.ajayprem.habittracker.service.BackendService;
 
 @RestController
 @RequestMapping("/api/penalties")
 public class PenaltiesController {
 
     @Autowired
-    private InMemoryBackendService svc;
+    private BackendService svc;
 
     @GetMapping("")
     public ResponseEntity<?> getPenalties(@RequestHeader(value = "Authorization", required = false) String authorization) {

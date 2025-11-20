@@ -11,14 +11,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.UserProfileDto;
-import com.ajayprem.habittracker.service.InMemoryBackendService;
+import com.ajayprem.habittracker.service.BackendService;
 
 @RestController
 @RequestMapping("/api/users")
 public class UsersController {
 
     @Autowired
-    private InMemoryBackendService svc;
+    private BackendService svc;
 
     @GetMapping("/search")
     public ResponseEntity<?> search(@RequestParam("email") String email) {

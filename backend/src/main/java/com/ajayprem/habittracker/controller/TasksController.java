@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.TaskDto;
-import com.ajayprem.habittracker.service.InMemoryBackendService;
+import com.ajayprem.habittracker.service.BackendService;
 
 @RestController
 @RequestMapping("/api/tasks")
 public class TasksController {
 
     @Autowired
-    private InMemoryBackendService svc;
+    private BackendService svc;
 
     @GetMapping("")
     public ResponseEntity<?> getTasks(@RequestHeader(value = "Authorization", required = false) String authorization) {
@@ -61,5 +61,27 @@ public class TasksController {
         Map<String,Object> resp = svc.applyTaskPenalty(userId, taskId);
         if (resp == null) return ResponseEntity.badRequest().body(Map.of("success", false));
         return ResponseEntity.ok(resp);
+    }
+
+    // --- New Feature: Task Reset (Uncomplete) ---
+    @PostMapping("/{taskId}/uncomplete")
+    public ResponseEntity<?> uncomplete(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                        @PathVariable String taskId) {
+        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
+        String userId = svc.getUserIdForToken(token);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+        boolean ok = svc.uncompleteTask(userId, taskId);
+        return ResponseEntity.ok(Map.of("success", ok));
+    }
+
+    // --- New Feature: Task Stats ---
+    @GetMapping("/{taskId}/stats")
+    public ResponseEntity<?> getStats(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                      @PathVariable String taskId) {
+        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
+        String userId = svc.getUserIdForToken(token);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+        Map<String, Object> stats = svc.getTaskStats(userId, taskId);
+        return ResponseEntity.ok(Map.of("stats", stats));
     }
 }
