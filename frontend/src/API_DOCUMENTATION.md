@@ -237,9 +237,15 @@ Create a new task.
   "description": "30 minutes cardio",
   "period": "daily",
   "penaltyAmount": 10.00,
-  "penaltyRecipientId": "friend_id"
+  "penaltyRecipientId": "friend_id",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31"
 }
 ```
+
+**Field Details:**
+- `startDate` (required): Date when the task should begin (YYYY-MM-DD format, must be today or later)
+- `endDate` (optional): Date when the task should end (YYYY-MM-DD format, must be after startDate)
 
 **Response:**
 ```json
@@ -254,6 +260,8 @@ Create a new task.
     "penaltyRecipientId": "friend_id",
     "status": "active",
     "completedDates": [],
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31",
     "createdAt": "2024-01-01T00:00:00.000Z",
     "nextDueDate": "2024-01-02"
   }
@@ -370,9 +378,15 @@ Create a new challenge.
   "description": "Work out every day",
   "period": "daily",
   "penaltyAmount": 25.00,
-  "invitedUserIds": ["friend_id_1", "friend_id_2"]
+  "invitedUserIds": ["friend_id_1", "friend_id_2"],
+  "startDate": "2024-01-01",
+  "endDate": "2024-01-31"
 }
 ```
+
+**Field Details:**
+- `startDate` (required): Date when the challenge should begin (YYYY-MM-DD format, must be today or later)
+- `endDate` (optional): Date when the challenge should end (YYYY-MM-DD format, must be after startDate)
 
 **Response:**
 ```json
@@ -393,6 +407,8 @@ Create a new challenge.
     ],
     "invitedUsers": ["friend_id_1", "friend_id_2"],
     "status": "active",
+    "startDate": "2024-01-01",
+    "endDate": "2024-01-31",
     "createdAt": "2024-01-01T00:00:00.000Z",
     "nextDueDate": "2024-01-02"
   }

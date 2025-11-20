@@ -285,6 +285,8 @@ public class BackendService {
             dto.setCompletedDates(t.getCompletedDates());
             dto.setCreatedAt(t.getCreatedAt());
             dto.setNextDueDate(t.getNextDueDate());
+            dto.setStartDate(t.getStartDate());
+            dto.setEndDate(t.getEndDate());
             out.add(dto);
         }
         return out;
@@ -308,6 +310,8 @@ public class BackendService {
         t.setCreatedAt(input.getCreatedAt() == null ? Instant.now().toString() : input.getCreatedAt());
         t.setNextDueDate(input.getNextDueDate() == null ? LocalDate.now().plusDays(1).toString() : input.getNextDueDate());
         if (input.getCompletedDates() != null) t.setCompletedDates(input.getCompletedDates());
+        t.setStartDate(input.getStartDate());
+        t.setEndDate(input.getEndDate());
         taskRepository.save(t);
         input.setId(String.valueOf(t.getId()));
         input.setUserId(String.valueOf(uid));
