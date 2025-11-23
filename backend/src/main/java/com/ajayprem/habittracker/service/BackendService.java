@@ -37,6 +37,78 @@ import com.ajayprem.habittracker.repository.UserRepository;
 @Service
 @Transactional
 public class BackendService {
+    // --- New Feature: Retroactive Completion ---
+    public Map<String, Object> completeTaskForDate(String userIdStr, String taskIdStr, String dateStr) {
+        Long tid = Long.parseLong(taskIdStr);
+        Optional<Task> ot = taskRepository.findById(tid);
+        if (ot.isEmpty()) return null;
+        Task t = ot.get();
+        if (!Objects.equals(String.valueOf(t.getUser().getId()), userIdStr)) return null;
+        // Validate date format
+        LocalDate date;
+        try {
+            date = LocalDate.parse(dateStr);
+        } catch (Exception e) {
+            return null;
+        }
+        LocalDate today = LocalDate.now();
+        if (date.isAfter(today)) return null;
+        // Validate start/end date
+        if (t.getStartDate() != null && !t.getStartDate().isEmpty()) {
+            LocalDate start = LocalDate.parse(t.getStartDate());
+            if (date.isBefore(start)) return null;
+        }
+        if (t.getEndDate() != null && !t.getEndDate().isEmpty()) {
+            LocalDate end = LocalDate.parse(t.getEndDate());
+            if (date.isAfter(end)) return null;
+        }
+        // Validate period
+        boolean valid = false;
+        if ("daily".equalsIgnoreCase(t.getPeriod())) {
+            valid = true;
+        } else if ("weekly".equalsIgnoreCase(t.getPeriod())) {
+            LocalDate created = t.getCreatedAt() != null ? LocalDate.parse(t.getCreatedAt().substring(0,10)) : date;
+            valid = date.getDayOfWeek() == created.getDayOfWeek();
+        } else if ("monthly".equalsIgnoreCase(t.getPeriod())) {
+            LocalDate created = t.getCreatedAt() != null ? LocalDate.parse(t.getCreatedAt().substring(0,10)) : date;
+            valid = date.getDayOfMonth() == created.getDayOfMonth();
+        }
+        if (!valid) return null;
+        // Add date if not present
+        if (!t.getCompletedDates().contains(dateStr)) {
+            t.getCompletedDates().add(dateStr);
+            taskRepository.save(t);
+        }
+        TaskDto dto = new TaskDto();
+        dto.setId(String.valueOf(t.getId()));
+        dto.setUserId(String.valueOf(t.getUser().getId()));
+        dto.setTitle(t.getTitle());
+        dto.setDescription(t.getDescription());
+        dto.setPeriod(t.getPeriod());
+        dto.setPenaltyAmount(t.getPenaltyAmount());
+        dto.setPenaltyRecipientId(t.getPenaltyRecipient() != null ? String.valueOf(t.getPenaltyRecipient().getId()) : null);
+        dto.setStatus(t.getStatus());
+        dto.setCompletedDates(t.getCompletedDates());
+        dto.setCreatedAt(t.getCreatedAt());
+        dto.setNextDueDate(t.getNextDueDate());
+        dto.setStartDate(t.getStartDate());
+        dto.setEndDate(t.getEndDate());
+        return Map.of("success", true, "task", dto);
+    }
+
+    public boolean uncompleteTaskForDate(String userIdStr, String taskIdStr, String dateStr) {
+        Long tid = Long.parseLong(taskIdStr);
+        Optional<Task> ot = taskRepository.findById(tid);
+        if (ot.isEmpty()) return false;
+        Task t = ot.get();
+        if (!Objects.equals(String.valueOf(t.getUser().getId()), userIdStr)) return false;
+        if (t.getCompletedDates().contains(dateStr)) {
+            t.getCompletedDates().remove(dateStr);
+            taskRepository.save(t);
+            return true;
+        }
+        return false;
+    }
     // --- New Feature: Task Reset (Uncomplete) ---
     public boolean uncompleteTask(String userIdStr, String taskIdStr) {
         Long tid = Long.parseLong(taskIdStr);
@@ -409,6 +481,8 @@ public class BackendService {
         c.setStatus(input.getStatus() == null ? "active" : input.getStatus());
         c.setCreatedAt(input.getCreatedAt() == null ? Instant.now().toString() : input.getCreatedAt());
         c.setNextDueDate(input.getNextDueDate() == null ? LocalDate.now().plusDays(1).toString() : input.getNextDueDate());
+        c.setStartDate(input.getStartDate());
+        c.setEndDate(input.getEndDate());
         // add creator as participant
         ChallengeParticipant cp = new ChallengeParticipant();
         cp.setChallenge(c);

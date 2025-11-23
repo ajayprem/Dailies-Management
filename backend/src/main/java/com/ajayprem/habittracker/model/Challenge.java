@@ -45,4 +45,7 @@ public class Challenge {
     private String status;
     private String createdAt;
     private String nextDueDate;
+
+    private String startDate;
+    private String endDate;
 }

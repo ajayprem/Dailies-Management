@@ -19,6 +19,31 @@ import com.ajayprem.habittracker.service.BackendService;
 @RestController
 @RequestMapping("/api/tasks")
 public class TasksController {
+    // --- New Feature: Retroactive Completion ---
+    @PostMapping("/{taskId}/complete-for-date")
+    public ResponseEntity<?> completeForDate(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                             @PathVariable String taskId,
+                                             @RequestBody Map<String, String> body) {
+        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
+        String userId = svc.getUserIdForToken(token);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+        String date = body.get("date");
+        Map<String, Object> resp = svc.completeTaskForDate(userId, taskId, date);
+        if (resp == null) return ResponseEntity.badRequest().body(Map.of("success", false));
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/{taskId}/uncomplete-for-date")
+    public ResponseEntity<?> uncompleteForDate(@RequestHeader(value = "Authorization", required = false) String authorization,
+                                               @PathVariable String taskId,
+                                               @RequestBody Map<String, String> body) {
+        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
+        String userId = svc.getUserIdForToken(token);
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+        String date = body.get("date");
+        boolean ok = svc.uncompleteTaskForDate(userId, taskId, date);
+        return ResponseEntity.ok(Map.of("success", ok));
+    }
 
     @Autowired
     private BackendService svc;

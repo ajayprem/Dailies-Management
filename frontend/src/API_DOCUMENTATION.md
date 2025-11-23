@@ -283,7 +283,7 @@ Mark a task as complete for today.
 
 ### POST /api/tasks/{taskId}/uncomplete
 
-Remove today's completion for a task (reset/undo completion).
+Remove today's completion for the task (reset functionality).
 
 **Headers:** Requires `Authorization`
 
@@ -293,6 +293,62 @@ Remove today's completion for a task (reset/undo completion).
   "success": true
 }
 ```
+
+### POST /api/tasks/{taskId}/complete-for-date
+
+Mark the task as completed for a specific date (retroactive completion).
+
+**Headers:** Requires `Authorization`
+
+**Request Body:**
+```json
+{
+  "date": "2024-01-15"  // YYYY-MM-DD format
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "task": {
+    // Updated task object with the new date added to completedDates
+  }
+}
+```
+
+**Notes:**
+- The `date` should be in the past or today
+- The date must fall within the task's period schedule
+- The date must be within the task's start and end date range (if specified)
+
+---
+
+### POST /api/tasks/{taskId}/uncomplete-for-date
+
+Remove a specific date's completion for the task (retroactive reset).
+
+**Headers:** Requires `Authorization`
+
+**Request Body:**
+```json
+{
+  "date": "2024-01-15"  // YYYY-MM-DD format
+}
+```
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+**Notes:**
+- Removes the specified date from the task's `completedDates` array
+- Used for correcting mistakes in historical completions
+
+---
 
 ### GET /api/tasks/{taskId}/stats
 
@@ -430,7 +486,23 @@ Accept a challenge invitation.
 
 ### POST /api/challenges/{challengeId}/complete
 
-Mark a challenge as complete for today.
+Mark the user as having completed the challenge for the current period.
+
+**Headers:** Requires `Authorization`
+
+**Response:**
+```json
+{
+  "success": true,
+  "challenge": {
+    // Updated challenge object
+  }
+}
+```
+
+### POST /api/challenges/{challengeId}/uncomplete
+
+Remove today's completion for the user in this challenge (reset functionality).
 
 **Headers:** Requires `Authorization`
 

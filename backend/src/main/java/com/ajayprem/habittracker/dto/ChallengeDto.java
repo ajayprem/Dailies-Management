@@ -17,6 +17,8 @@ public class ChallengeDto {
     private String status;
     private String createdAt;
     private String nextDueDate;
+    private String startDate;
+    private String endDate;
 
     @Data
     public static class Participant {

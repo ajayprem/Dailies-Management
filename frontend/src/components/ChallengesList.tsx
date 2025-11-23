@@ -6,10 +6,12 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import { Plus, CheckCircle, Users, Target } from 'lucide-react';
+import { Plus, CheckCircle, Users, Target, BarChart3, RotateCcw } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Checkbox } from './ui/checkbox';
 import { API_ENDPOINTS, apiCall } from '../config/api';
+import { ChallengeStats } from './ChallengeStats';
+import { toast } from 'sonner';
 
 interface ChallengesListProps {
   accessToken: string;
@@ -21,6 +23,8 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -99,10 +103,30 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
       await apiCall(API_ENDPOINTS.completeChallenge(challengeId), {
         method: 'POST',
       });
+      toast.success('Challenge completed! 🎉');
       fetchChallenges();
     } catch (error) {
       console.error('Error completing challenge:', error);
+      toast.error('Failed to complete challenge');
     }
+  };
+
+  const handleResetChallenge = async (challengeId: string) => {
+    try {
+      await apiCall(API_ENDPOINTS.uncompleteChallenge(challengeId), {
+        method: 'POST',
+      });
+      toast.success('Challenge completion reset');
+      fetchChallenges();
+    } catch (error) {
+      console.error('Error resetting challenge:', error);
+      toast.error('Failed to reset challenge');
+    }
+  };
+
+  const handleOpenStats = (challenge: any) => {
+    setSelectedChallenge(challenge);
+    setStatsDialogOpen(true);
   };
 
   const toggleFriendSelection = (friendId: string) => {
@@ -177,7 +201,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                 <Label htmlFor="period">Period</Label>
                 <Select
                   value={formData.period}
-                  onValueChange={(value) => setFormData({ ...formData, period: value })}
+                  onValueChange={(value: any) => setFormData({ ...formData, period: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -317,14 +341,33 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                         Accept Challenge
                       </Button>
                     ) : userParticipant ? (
-                      <Button
-                        onClick={() => handleCompleteChallenge(challenge.id)}
-                        disabled={completedToday}
-                        className="w-full"
-                        variant={completedToday ? 'secondary' : 'default'}
-                      >
-                        {completedToday ? 'Completed Today' : 'Mark Complete'}
-                      </Button>
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            onClick={() => handleCompleteChallenge(challenge.id)}
+                            disabled={completedToday}
+                            variant={completedToday ? 'secondary' : 'default'}
+                          >
+                            {completedToday ? 'Completed' : 'Complete'}
+                          </Button>
+                          <Button
+                            onClick={() => handleResetChallenge(challenge.id)}
+                            disabled={!completedToday}
+                            variant="outline"
+                          >
+                            <RotateCcw className="w-4 h-4 mr-1" />
+                            Reset
+                          </Button>
+                        </div>
+                        <Button
+                          onClick={() => handleOpenStats(challenge)}
+                          variant="ghost"
+                          className="w-full"
+                        >
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          View Stats & Calendar
+                        </Button>
+                      </>
                     ) : null}
                   </div>
                 </CardContent>
@@ -332,6 +375,16 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
             );
           })}
         </div>
+      )}
+
+      {/* Challenge Stats Dialog */}
+      {selectedChallenge && (
+        <ChallengeStats
+          challenge={selectedChallenge}
+          userId={userId}
+          open={statsDialogOpen}
+          onOpenChange={setStatsDialogOpen}
+        />
       )}
     </div>
   );

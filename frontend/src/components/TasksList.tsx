@@ -6,11 +6,13 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import { Plus, CheckCircle, AlertTriangle, BarChart3, RotateCcw } from 'lucide-react';
+import { Plus, CheckCircle, AlertTriangle, BarChart3, RotateCcw, Calendar } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { API_ENDPOINTS, apiCall } from '../config/api';
 import { TaskStats } from './TaskStats';
-import { toast } from 'sonner@2.0.3';
+import { DailyTasksView } from './DailyTasksView';
+import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 interface TasksListProps {
   accessToken: string;
@@ -248,84 +250,99 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
         </Dialog>
       </div>
 
-      {tasks.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-gray-500">No tasks yet. Create your first task to get started!</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {tasks.map((task) => {
-            const completedToday = isTaskCompletedToday(task);
-            return (
-              <Card key={task.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="flex items-center gap-2">
-                        {task.title}
-                        {completedToday && (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        )}
-                      </CardTitle>
-                      <CardDescription className="mt-1">{task.description}</CardDescription>
-                    </div>
-                    <Badge variant={task.period === 'daily' ? 'default' : task.period === 'weekly' ? 'secondary' : 'outline'}>
-                      {task.period}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <AlertTriangle className="w-4 h-4 text-orange-500" />
-                      <span>Penalty: ${task.penaltyAmount}</span>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Completed: {task.completedDates?.length || 0} times
-                    </div>
-                    {(task.startDate || task.endDate) && (
-                      <div className="text-sm text-gray-600">
-                        {task.startDate && <div>Starts: {new Date(task.startDate).toLocaleDateString()}</div>}
-                        {task.endDate && <div>Ends: {new Date(task.endDate).toLocaleDateString()}</div>}
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="all">All Tasks</TabsTrigger>
+          <TabsTrigger value="daily">
+            <Calendar className="w-4 h-4 mr-2" />
+            Daily View
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="mt-4">
+          {tasks.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-gray-500">No tasks yet. Create your first task to get started!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">{tasks.map((task) => {
+              const completedToday = isTaskCompletedToday(task);
+              return (
+                <Card key={task.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <CardTitle className="flex items-center gap-2">
+                          {task.title}
+                          {completedToday && (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          )}
+                        </CardTitle>
+                        <CardDescription className="mt-1">{task.description}</CardDescription>
                       </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-2">
+                      <Badge variant={task.period === 'daily' ? 'default' : task.period === 'weekly' ? 'secondary' : 'outline'}>
+                        {task.period}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <AlertTriangle className="w-4 h-4 text-orange-500" />
+                        <span>Penalty: ${task.penaltyAmount}</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Completed: {task.completedDates?.length || 0} times
+                      </div>
+                      {(task.startDate || task.endDate) && (
+                        <div className="text-sm text-gray-600">
+                          {task.startDate && <div>Starts: {new Date(task.startDate).toLocaleDateString()}</div>}
+                          {task.endDate && <div>Ends: {new Date(task.endDate).toLocaleDateString()}</div>}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          onClick={() => handleCompleteTask(task.id)}
+                          disabled={completedToday}
+                          className="w-full"
+                          variant={completedToday ? 'secondary' : 'default'}
+                        >
+                          {completedToday ? 'Completed ✓' : 'Mark Complete'}
+                        </Button>
+                        <Button
+                          onClick={() => handleUncompleteTask(task.id)}
+                          disabled={!completedToday}
+                          className="w-full"
+                          variant="outline"
+                          size="sm"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Reset
+                        </Button>
+                      </div>
                       <Button
-                        onClick={() => handleCompleteTask(task.id)}
-                        disabled={completedToday}
-                        className="w-full"
-                        variant={completedToday ? 'secondary' : 'default'}
-                      >
-                        {completedToday ? 'Completed ✓' : 'Mark Complete'}
-                      </Button>
-                      <Button
-                        onClick={() => handleUncompleteTask(task.id)}
-                        disabled={!completedToday}
+                        onClick={() => handleViewStats(task)}
                         className="w-full"
                         variant="outline"
-                        size="sm"
                       >
-                        <RotateCcw className="w-4 h-4 mr-1" />
-                        Reset
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        View Stats & Calendar
                       </Button>
                     </div>
-                    <Button
-                      onClick={() => handleViewStats(task)}
-                      className="w-full"
-                      variant="outline"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      View Stats & Calendar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="daily" className="mt-4">
+          <DailyTasksView tasks={tasks} onTaskUpdate={fetchTasks} />
+        </TabsContent>
+      </Tabs>
 
       {/* Stats Dialog */}
       {statsTask && (

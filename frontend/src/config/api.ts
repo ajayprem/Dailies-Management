@@ -21,6 +21,8 @@ export const API_ENDPOINTS = {
   createTask: `${API_BASE_URL}/tasks`,
   completeTask: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/complete`,
   uncompleteTask: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/uncomplete`,
+  completeTaskForDate: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/complete-for-date`,
+  uncompleteTaskForDate: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/uncomplete-for-date`,
   getTaskStats: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/stats`,
   applyTaskPenalty: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}/penalty`,
   
@@ -29,6 +31,7 @@ export const API_ENDPOINTS = {
   createChallenge: `${API_BASE_URL}/challenges`,
   acceptChallenge: (challengeId: string) => `${API_BASE_URL}/challenges/${challengeId}/accept`,
   completeChallenge: (challengeId: string) => `${API_BASE_URL}/challenges/${challengeId}/complete`,
+  uncompleteChallenge: (challengeId: string) => `${API_BASE_URL}/challenges/${challengeId}/uncomplete`,
   applyChallengePenalty: (challengeId: string) => `${API_BASE_URL}/challenges/${challengeId}/penalty`,
   
   // Penalties
