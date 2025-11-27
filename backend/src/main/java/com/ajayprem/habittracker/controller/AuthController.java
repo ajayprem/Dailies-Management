@@ -7,23 +7,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.AuthResponses;
 import com.ajayprem.habittracker.dto.UserProfileDto;
-import com.ajayprem.habittracker.service.BackendService;
+import com.ajayprem.habittracker.service.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     @Autowired
-    private BackendService svc;
+    private AuthService svc;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody Map<String,Object> body) {
+        System.out.println("AuthController: Signup request received with body: " + body);
         String email = (String) body.get("email");
         String password = (String) body.get("password");
         String name = (String) body.get("name");
@@ -42,10 +42,8 @@ public class AuthController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<?> profile(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        String token = null;
-        if (authorization != null && authorization.startsWith("Bearer ")) token = authorization.substring(7);
-        UserProfileDto p = svc.profileForToken(token);
+    public ResponseEntity<?> profile() {
+        UserProfileDto p = svc.profile();
         if (p == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
         return ResponseEntity.ok(Map.of("user", p));
     }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.ChallengeDto;
 import com.ajayprem.habittracker.service.BackendService;
+import com.ajayprem.habittracker.util.CurrentUser;
 
 @RestController
 @RequestMapping("/api/challenges")
@@ -24,54 +25,59 @@ public class ChallengesController {
     private BackendService svc;
 
     @GetMapping("")
-    public ResponseEntity<?> getChallenges(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> getChallenges() {
+        final Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         List<ChallengeDto> list = svc.getChallenges(userId);
         return ResponseEntity.ok(Map.of("challenges", list));
     }
 
     @PostMapping("")
-    public ResponseEntity<?> create(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                    @RequestBody ChallengeDto body) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> create(
+            @RequestBody ChallengeDto body) {
+        
+        final Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         ChallengeDto created = svc.createChallenge(userId, body);
         return ResponseEntity.ok(Map.of("challenge", created));
     }
 
     @PostMapping("/{challengeId}/accept")
-    public ResponseEntity<?> accept(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                    @PathVariable String challengeId) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> accept(
+            @PathVariable String challengeId) {
+        
+        final Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         boolean ok = svc.acceptChallenge(userId, challengeId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
     @PostMapping("/{challengeId}/complete")
-    public ResponseEntity<?> complete(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                      @PathVariable String challengeId) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> complete(
+            @PathVariable String challengeId) {
+        
+        final Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         boolean ok = svc.completeChallenge(userId, challengeId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
     @PostMapping("/{challengeId}/penalty")
-    public ResponseEntity<?> penalty(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                     @PathVariable String challengeId,
-                                     @RequestBody Map<String,String> body) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> penalty(
+            @PathVariable String challengeId,
+            @RequestBody Map<String, String> body) {
+        
+        final Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         String failedUserId = body.get("failedUserId");
-        Map<String,Object> resp = svc.applyChallengePenalty(userId, challengeId, failedUserId);
-        if (resp == null) return ResponseEntity.badRequest().body(Map.of("success", false));
+        Map<String, Object> resp = svc.applyChallengePenalty(userId, challengeId, failedUserId);
+        if (resp == null)
+            return ResponseEntity.badRequest().body(Map.of("success", false));
         return ResponseEntity.ok(resp);
     }
 }

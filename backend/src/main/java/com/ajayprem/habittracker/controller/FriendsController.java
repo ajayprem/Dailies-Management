@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ajayprem.habittracker.dto.UserProfileDto;
 import com.ajayprem.habittracker.model.FriendRequest;
 import com.ajayprem.habittracker.service.BackendService;
+import com.ajayprem.habittracker.util.CurrentUser;
 
 @RestController
 @RequestMapping("/api/friends")
@@ -24,68 +25,66 @@ public class FriendsController {
     private BackendService svc;
 
     @PostMapping("/request")
-    public ResponseEntity<?> requestFriend(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                           @RequestBody Map<String,String> body) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String fromUser = svc.getUserIdForToken(token);
+    public ResponseEntity<?> requestFriend(
+            @RequestBody Map<String, String> body) {
+        Long fromUser = CurrentUser.id();
         String friendId = body.get("friendId");
-        if (fromUser == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
-        boolean ok = svc.sendFriendRequest(fromUser, friendId);
+        if (fromUser == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
+        boolean ok = svc.sendFriendRequest(fromUser, Long.valueOf(friendId));
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
     @GetMapping("/requests")
-    public ResponseEntity<?> getRequests(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> getRequests() {
+        Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         List<FriendRequest> list = svc.getFriendRequests(userId);
-        List<Map<String,Object>> out = list.stream().map(fr -> {
+        List<Map<String, Object>> out = list.stream().map(fr -> {
             var from = fr.getFromUser();
-            Map<String,Object> fromUser = Map.of(
-                "id", String.valueOf(from.getId()),
-                "name", from.getName(),
-                "email", from.getEmail()
-            );
+            Map<String, Object> fromUser = Map.of(
+                    "id", String.valueOf(from.getId()),
+                    "name", from.getName(),
+                    "email", from.getEmail());
             return Map.of(
-                "id", String.valueOf(fr.getId()),
-                "fromUserId", String.valueOf(fr.getFromUser().getId()),
-                "toUserId", String.valueOf(fr.getToUser().getId()),
-                "status", fr.getStatus(),
-                "createdAt", fr.getCreatedAt(),
-                "fromUser", fromUser
-            );
+                    "id", String.valueOf(fr.getId()),
+                    "fromUserId", String.valueOf(fr.getFromUser().getId()),
+                    "toUserId", String.valueOf(fr.getToUser().getId()),
+                    "status", fr.getStatus(),
+                    "createdAt", fr.getCreatedAt(),
+                    "fromUser", fromUser);
         }).toList();
         return ResponseEntity.ok(Map.of("requests", out));
     }
 
     @PostMapping("/accept")
-    public ResponseEntity<?> accept(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                    @RequestBody Map<String,String> body) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        String requestId = body.get("requestId");
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> accept(
+            @RequestBody Map<String, String> body) {
+        Long userId =  CurrentUser.id();
+        Long requestId = Long.valueOf(body.get("requestId"));
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         boolean ok = svc.acceptFriendRequest(userId, requestId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
     @PostMapping("/delete")
-    public ResponseEntity<?> deleteRequest(@RequestHeader(value = "Authorization", required = false) String authorization,
-                                           @RequestBody Map<String,String> body) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        String requestId = body.get("requestId");
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> deleteRequest(
+            @RequestBody Map<String, String> body) {
+        Long userId = CurrentUser.id();
+        Long requestId = Long.valueOf(body.get("requestId"));
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         boolean ok = svc.deleteFriendRequest(userId, requestId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
     @GetMapping("")
-    public ResponseEntity<?> listFriends(@RequestHeader(value = "Authorization", required = false) String authorization) {
-        String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;
-        String userId = svc.getUserIdForToken(token);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+    public ResponseEntity<?> listFriends() {
+        Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         List<UserProfileDto> list = svc.listFriends(userId);
         return ResponseEntity.ok(Map.of("friends", list));
     }
