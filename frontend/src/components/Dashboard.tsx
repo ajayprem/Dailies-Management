@@ -5,47 +5,23 @@ import { ChallengesList } from './ChallengesList';
 import { FriendsManager } from './FriendsManager';
 import { PenaltiesView } from './PenaltiesView';
 import { Button } from './ui/button';
-import { LogOut, Users, ListTodo, Target, DollarSign } from 'lucide-react';
+import { LogOut, Users, ListTodo, Target, DollarSign, IndianRupee } from 'lucide-react';
 import { API_ENDPOINTS, apiCall } from '../config/api';
 
 interface DashboardProps {
   accessToken: string;
+  userProfile: any;
   userId: string;
   onLogout: () => void;
 }
 
-export function Dashboard({ accessToken, userId, onLogout }: DashboardProps) {
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const data = await apiCall(API_ENDPOINTS.profile);
-      setUserProfile(data.user);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export function Dashboard({ accessToken, userId, userProfile, onLogout }: DashboardProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
     onLogout();
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
@@ -76,13 +52,13 @@ export function Dashboard({ accessToken, userId, onLogout }: DashboardProps) {
               <span className="hidden sm:inline">Friends</span>
             </TabsTrigger>
             <TabsTrigger value="penalties" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
+              <IndianRupee className="w-4 h-4" />
               <span className="hidden sm:inline">Penalties</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="tasks">
-            <TasksList accessToken={accessToken} userId={userId} />
+            <TasksList />
           </TabsContent>
 
           <TabsContent value="challenges">

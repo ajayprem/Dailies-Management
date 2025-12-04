@@ -213,8 +213,12 @@ Get all tasks for the authenticated user.
       "title": "Go to the gym",
       "description": "30 minutes cardio",
       "period": "daily",
-      "penaltyAmount": 10.00,
-      "penaltyRecipientId": "friend_id",
+      "penaltyAmount": 100.00,
+      "penaltyRecipientIds": ["friend_id_1", "friend_id_2"],
+      "recipientFriends": [
+        { "id": "friend_id_1", "name": "Friend 1" },
+        { "id": "friend_id_2", "name": "Friend 2" }
+      ],
       "status": "active",
       "completedDates": ["2024-01-01", "2024-01-02"],
       "createdAt": "2024-01-01T00:00:00.000Z",
@@ -484,22 +488,6 @@ Accept a challenge invitation.
 }
 ```
 
-### POST /api/challenges/{challengeId}/complete
-
-Mark the user as having completed the challenge for the current period.
-
-**Headers:** Requires `Authorization`
-
-**Response:**
-```json
-{
-  "success": true,
-  "challenge": {
-    // Updated challenge object
-  }
-}
-```
-
 ### POST /api/challenges/{challengeId}/uncomplete
 
 Remove today's completion for the user in this challenge (reset functionality).
@@ -512,6 +500,73 @@ Remove today's completion for the user in this challenge (reset functionality).
   "success": true
 }
 ```
+
+**Note:**  
+- When using the daily view, the request body should include `{ "date": "YYYY-MM-DD" }` to uncomplete for a specific date
+- When using the standard view (today), the request body can be empty
+
+---
+
+### POST /api/challenges/{challengeId}/complete
+
+Mark the user as having completed the challenge for the current period.
+
+**Headers:** Requires `Authorization`
+
+**Request Body (optional for specific date):**
+```json
+{
+  "date": "2024-01-15"  // YYYY-MM-DD format (optional, defaults to today)
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "challenge": {
+    // Updated challenge object
+  }
+}
+```
+
+**Notes:**
+- If no date is provided, marks completion for today
+- If date is provided, marks completion for that specific date (retroactive completion)
+- The date must be within the challenge's start and end date range
+- The date must match the challenge's period schedule
+
+---
+
+### GET /api/challenges/{challengeId}/stats
+
+Get detailed statistics for a specific challenge.
+
+**Headers:** Requires `Authorization`
+
+**Response:**
+```json
+{
+  "stats": {
+    "participants": [
+      {
+        "userId": "user_id",
+        "name": "User Name",
+        "totalCompletions": 15,
+        "currentStreak": 3,
+        "completionRate": 85.5
+      }
+    ],
+    "challengeStats": {
+      "totalPeriods": 20,
+      "periodsWithAllComplete": 12,
+      "groupCompletionRate": 60.0
+    }
+  }
+}
+```
+
+---
 
 ### POST /api/challenges/{challengeId}/penalty
 

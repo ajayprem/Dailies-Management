@@ -12,7 +12,8 @@ public class TaskDto {
     private String description;
     private String period;
     private double penaltyAmount;
-    private String penaltyRecipientId;
+    private List<String> penaltyRecipientIds;
+    private List<UserDto> recipientFriends;
     private String status;
     private List<String> completedDates;
     private String createdAt;

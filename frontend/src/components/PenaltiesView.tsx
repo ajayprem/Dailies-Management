@@ -63,7 +63,7 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl">${owed.toFixed(2)}</div>
+            <div className="text-3xl">₹{owed.toFixed(2)}</div>
             <p className="text-sm text-gray-600 mt-1">From incomplete tasks</p>
           </CardContent>
         </Card>
@@ -76,7 +76,7 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl">${receiving.toFixed(2)}</div>
+            <div className="text-3xl">₹{receiving.toFixed(2)}</div>
             <p className="text-sm text-gray-600 mt-1">From friends' penalties</p>
           </CardContent>
         </Card>
@@ -120,7 +120,7 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
                         <p className="text-sm">{penalty.reason}</p>
                       </div>
                       <div className={`text-xl ${isOwed ? 'text-red-600' : 'text-green-600'}`}>
-                        ${penalty.amount.toFixed(2)}
+                        ₹{penalty.amount.toFixed(2)}
                       </div>
                     </div>
                     <div className="text-xs text-gray-500">

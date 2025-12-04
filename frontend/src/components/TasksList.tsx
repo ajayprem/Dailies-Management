@@ -6,32 +6,29 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import { Plus, CheckCircle, AlertTriangle, BarChart3, RotateCcw, Calendar } from 'lucide-react';
+import { Plus, CheckCircle, AlertTriangle, BarChart3, RotateCcw, Calendar, User } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { Checkbox } from './ui/checkbox';
 import { API_ENDPOINTS, apiCall } from '../config/api';
 import { TaskStats } from './TaskStats';
 import { DailyTasksView } from './DailyTasksView';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
-interface TasksListProps {
-  accessToken: string;
-  userId: string;
-}
-
-export function TasksList({ accessToken, userId }: TasksListProps) {
+export function TasksList() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statsTask, setStatsTask] = useState<any | null>(null);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [isPersonalTask, setIsPersonalTask] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     period: 'daily',
     penaltyAmount: '',
-    penaltyRecipientId: '',
+    penaltyRecipientIds: [] as string[],
     startDate: new Date().toISOString().split('T')[0], // Default to today
     endDate: '', // Optional
   });
@@ -64,12 +61,23 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const taskData: any = {
+        title: formData.title,
+        description: formData.description,
+        period: formData.period,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+      };
+
+      // Only add penalty fields if it's not a personal task
+      if (!isPersonalTask) {
+        taskData.penaltyAmount = parseFloat(formData.penaltyAmount);
+        taskData.penaltyRecipientIds = formData.penaltyRecipientIds;
+      }
+
       await apiCall(API_ENDPOINTS.createTask, {
         method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          penaltyAmount: parseFloat(formData.penaltyAmount),
-        }),
+        body: JSON.stringify(taskData),
       });
 
       setDialogOpen(false);
@@ -78,14 +86,24 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
         description: '',
         period: 'daily',
         penaltyAmount: '',
-        penaltyRecipientId: '',
-        startDate: new Date().toISOString().split('T')[0], // Default to today
-        endDate: '', // Optional
+        penaltyRecipientIds: [],
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
       });
+      setIsPersonalTask(false);
       fetchTasks();
     } catch (error) {
       console.error('Error creating task:', error);
     }
+  };
+
+  const toggleRecipientSelection = (friendId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      penaltyRecipientIds: prev.penaltyRecipientIds.includes(friendId)
+        ? prev.penaltyRecipientIds.filter((id) => id !== friendId)
+        : [...prev.penaltyRecipientIds, friendId],
+    }));
   };
 
   const handleCompleteTask = async (taskId: string) => {
@@ -146,7 +164,7 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
             <DialogHeader>
               <DialogTitle>Create New Task</DialogTitle>
               <DialogDescription>
-                Set up a task with a penalty if you don't complete it on time
+                Set up a personal task or one with a penalty if you don't complete it on time
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateTask} className="space-y-4">
@@ -185,40 +203,72 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="penalty">Penalty Amount ($)</Label>
-                <Input
-                  id="penalty"
-                  type="number"
-                  step="0.01"
-                  value={formData.penaltyAmount}
-                  onChange={(e) => setFormData({ ...formData, penaltyAmount: e.target.value })}
-                  required
-                  placeholder="10.00"
+
+              <div className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50">
+                <Checkbox
+                  id="personal"
+                  checked={isPersonalTask}
+                  onCheckedChange={(checked) => {
+                    setIsPersonalTask(checked as boolean);
+                    if (checked) {
+                      setFormData({ ...formData, penaltyAmount: '', penaltyRecipientIds: [] });
+                    }
+                  }}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="recipient">Penalty Recipient</Label>
-                <Select
-                  value={formData.penaltyRecipientId}
-                  onValueChange={(value) => setFormData({ ...formData, penaltyRecipientId: value })}
-                  required
+                <label
+                  htmlFor="personal"
+                  className="text-sm cursor-pointer flex items-center gap-2"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a friend" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {friends.map((friend) => (
-                      <SelectItem key={friend.id} value={friend.id}>
-                        {friend.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {friends.length === 0 && (
-                  <p className="text-sm text-gray-500">Add friends first to select a recipient</p>
-                )}
+                  <User className="w-4 h-4" />
+                  This is a personal task (no penalty)
+                </label>
               </div>
+
+              {!isPersonalTask && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="penalty">Penalty Amount (₹)</Label>
+                    <Input
+                      id="penalty"
+                      type="number"
+                      step="0.01"
+                      value={formData.penaltyAmount}
+                      onChange={(e) => setFormData({ ...formData, penaltyAmount: e.target.value })}
+                      required
+                      placeholder="100.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Penalty Recipients (Select one or more)</Label>
+                    <div className="space-y-2 border rounded-md p-3 max-h-48 overflow-y-auto">
+                      {friends.length === 0 ? (
+                        <p className="text-sm text-gray-500">Add friends first to select recipients</p>
+                      ) : (
+                        friends.map((friend) => (
+                          <div key={friend.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`recipient-${friend.id}`}
+                              checked={formData.penaltyRecipientIds.includes(friend.id)}
+                              onCheckedChange={() => toggleRecipientSelection(friend.id)}
+                            />
+                            <label
+                              htmlFor={`recipient-${friend.id}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {friend.name}
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {formData.penaltyRecipientIds.length > 0 && (
+                      <p className="text-xs text-gray-500">
+                        Penalty will be split among {formData.penaltyRecipientIds.length} recipient(s)
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input
@@ -242,7 +292,11 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
                 />
                 <p className="text-xs text-gray-500">Leave blank for ongoing task</p>
               </div>
-              <Button type="submit" className="w-full" disabled={friends.length === 0}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={!isPersonalTask && (friends.length === 0 || formData.penaltyRecipientIds.length === 0)}
+              >
                 Create Task
               </Button>
             </form>
@@ -279,6 +333,12 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
                           {completedToday && (
                             <CheckCircle className="w-5 h-5 text-green-600" />
                           )}
+                          {!task.penaltyAmount && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              <User className="w-3 h-3 mr-1" />
+                              Personal
+                            </Badge>
+                          )}
                         </CardTitle>
                         <CardDescription className="mt-1">{task.description}</CardDescription>
                       </div>
@@ -289,10 +349,19 @@ export function TasksList({ accessToken, userId }: TasksListProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <AlertTriangle className="w-4 h-4 text-orange-500" />
-                        <span>Penalty: ${task.penaltyAmount}</span>
-                      </div>
+                      {task.penaltyAmount && (
+                        <>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <AlertTriangle className="w-4 h-4 text-orange-500" />
+                            <span>Penalty: ₹{task.penaltyAmount}</span>
+                          </div>
+                          {task.recipientFriends && task.recipientFriends.length > 0 && (
+                            <div className="text-sm text-gray-600">
+                              Recipients: {task.recipientFriends.map((f: any) => f.name).join(', ')}
+                            </div>
+                          )}
+                        </>
+                      )}
                       <div className="text-sm text-gray-600">
                         Completed: {task.completedDates?.length || 0} times
                       </div>

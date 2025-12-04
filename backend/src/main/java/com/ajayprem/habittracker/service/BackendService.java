@@ -9,226 +9,33 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ajayprem.habittracker.dto.ChallengeDto;
 import com.ajayprem.habittracker.dto.PenaltyDto;
-import com.ajayprem.habittracker.dto.TaskDto;
 import com.ajayprem.habittracker.dto.UserProfileDto;
 import com.ajayprem.habittracker.model.AuthToken;
 import com.ajayprem.habittracker.model.Challenge;
 import com.ajayprem.habittracker.model.ChallengeParticipant;
 import com.ajayprem.habittracker.model.FriendRequest;
 import com.ajayprem.habittracker.model.Penalty;
-import com.ajayprem.habittracker.model.Task;
 import com.ajayprem.habittracker.model.User;
 import com.ajayprem.habittracker.repository.AuthTokenRepository;
 import com.ajayprem.habittracker.repository.ChallengeParticipantRepository;
 import com.ajayprem.habittracker.repository.ChallengeRepository;
 import com.ajayprem.habittracker.repository.FriendRequestRepository;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
-import com.ajayprem.habittracker.repository.TaskRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
 
 @Service
 @Transactional
 public class BackendService {
-    @Autowired
-    private JwtService jwtService;
 
-    // --- New Feature: Retroactive Completion ---
-    public Map<String, Object> completeTaskForDate(Long uid, String taskIdStr, String dateStr) {
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            return null;
-        }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return null;
-        }
-        // Validate date format
-        LocalDate date;
-        try {
-            date = LocalDate.parse(dateStr);
-        } catch (Exception e) {
-            return null;
-        }
-        LocalDate today = LocalDate.now();
-        if (date.isAfter(today)) {
-            return null;
-        }
-        // Validate start/end date
-        if (t.getStartDate() != null && !t.getStartDate().isEmpty()) {
-            LocalDate start = LocalDate.parse(t.getStartDate());
-            if (date.isBefore(start)) {
-                return null;
-            }
-        }
-        if (t.getEndDate() != null && !t.getEndDate().isEmpty()) {
-            LocalDate end = LocalDate.parse(t.getEndDate());
-            if (date.isAfter(end)) {
-                return null;
-            }
-        }
-        // Validate period
-        boolean valid = false;
-        if ("daily".equalsIgnoreCase(t.getPeriod())) {
-            valid = true;
-        } else if ("weekly".equalsIgnoreCase(t.getPeriod())) {
-            LocalDate created = t.getCreatedAt() != null ? LocalDate.parse(t.getCreatedAt().substring(0, 10)) : date;
-            valid = date.getDayOfWeek() == created.getDayOfWeek();
-        } else if ("monthly".equalsIgnoreCase(t.getPeriod())) {
-            LocalDate created = t.getCreatedAt() != null ? LocalDate.parse(t.getCreatedAt().substring(0, 10)) : date;
-            valid = date.getDayOfMonth() == created.getDayOfMonth();
-        }
-        if (!valid) {
-            return null;
-        }
-        // Add date if not present
-        if (!t.getCompletedDates().contains(dateStr)) {
-            t.getCompletedDates().add(dateStr);
-            taskRepository.save(t);
-        }
-        TaskDto dto = new TaskDto();
-        dto.setId(String.valueOf(t.getId()));
-        dto.setUserId(String.valueOf(t.getUser().getId()));
-        dto.setTitle(t.getTitle());
-        dto.setDescription(t.getDescription());
-        dto.setPeriod(t.getPeriod());
-        dto.setPenaltyAmount(t.getPenaltyAmount());
-        dto.setPenaltyRecipientId(
-                t.getPenaltyRecipient() != null ? String.valueOf(t.getPenaltyRecipient().getId()) : null);
-        dto.setStatus(t.getStatus());
-        dto.setCompletedDates(t.getCompletedDates());
-        dto.setCreatedAt(t.getCreatedAt());
-        dto.setNextDueDate(t.getNextDueDate());
-        dto.setStartDate(t.getStartDate());
-        dto.setEndDate(t.getEndDate());
-        return Map.of("success", true, "task", dto);
-    }
-
-    public boolean uncompleteTaskForDate(Long uid, String taskIdStr, String dateStr) {
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            return false;
-        }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return false;
-        }
-        if (t.getCompletedDates().contains(dateStr)) {
-            t.getCompletedDates().remove(dateStr);
-            taskRepository.save(t);
-            return true;
-        }
-        return false;
-    }
-
-    // --- New Feature: Task Reset (Uncomplete) ---
-    public boolean uncompleteTask(Long uid, String taskIdStr) {
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            return false;
-        }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return false;
-        }
-        String today = LocalDate.now().toString();
-        if (t.getCompletedDates().contains(today)) {
-            t.getCompletedDates().remove(today);
-            taskRepository.save(t);
-            return true;
-        }
-        return false;
-    }
-
-    // --- New Feature: Task Stats ---
-    public Map<String, Object> getTaskStats(Long uid, String taskIdStr) {
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            return Map.of();
-        }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return Map.of();
-        }
-        List<String> completedDates = t.getCompletedDates();
-        int totalCompletions = completedDates.size();
-        int currentStreak = calcCurrentStreak(completedDates);
-        int longestStreak = calcLongestStreak(completedDates);
-        double completionRate = calcCompletionRate(t, completedDates);
-        int totalPenalties = 0; // Optional: implement penalty count if needed
-        double penaltyAmount = t.getPenaltyAmount();
-        return Map.of(
-                "totalCompletions", totalCompletions,
-                "currentStreak", currentStreak,
-                "longestStreak", longestStreak,
-                "completionRate", completionRate,
-                "totalPenalties", totalPenalties,
-                "penaltyAmount", penaltyAmount);
-    }
-
-    // --- Helper Methods for Stats ---
-    private int calcCurrentStreak(List<String> completedDates) {
-        if (completedDates == null || completedDates.isEmpty()) {
-            return 0;
-        }
-        List<LocalDate> dates = completedDates.stream().map(LocalDate::parse).sorted(Collections.reverseOrder())
-                .toList();
-        int streak = 0;
-        LocalDate today = LocalDate.now();
-        for (LocalDate d : dates) {
-            if (d.equals(today.minusDays(streak))) {
-                streak++;
-            } else {
-                break;
-            }
-        }
-        return streak;
-    }
-
-    private int calcLongestStreak(List<String> completedDates) {
-        if (completedDates == null || completedDates.isEmpty()) {
-            return 0;
-        }
-        List<LocalDate> dates = completedDates.stream().map(LocalDate::parse).sorted().toList();
-        int longest = 0, current = 1;
-        for (int i = 1; i < dates.size(); i++) {
-            if (dates.get(i).equals(dates.get(i - 1).plusDays(1))) {
-                current++;
-            } else {
-                longest = Math.max(longest, current);
-                current = 1;
-            }
-        }
-        longest = Math.max(longest, current);
-        return longest;
-    }
-
-    private double calcCompletionRate(Task t, List<String> completedDates) {
-        if (completedDates == null || completedDates.isEmpty()) {
-            return 0.0;
-        }
-        LocalDate created = LocalDate.parse(t.getCreatedAt());
-        LocalDate today = LocalDate.now();
-        long days = java.time.temporal.ChronoUnit.DAYS.between(created, today) + 1;
-        int expectedCompletions = 1;
-        if ("daily".equalsIgnoreCase(t.getPeriod())) {
-            expectedCompletions = (int) days;
-        } else if ("weekly".equalsIgnoreCase(t.getPeriod())) {
-            expectedCompletions = (int) Math.ceil(days / 7.0);
-        } else if ("monthly".equalsIgnoreCase(t.getPeriod())) {
-            expectedCompletions = (int) Math.ceil(days / 30.0);
-        }
-        return expectedCompletions > 0 ? (completedDates.size() * 100.0 / expectedCompletions) : 0.0;
-    }
+    private static final Logger log = LoggerFactory.getLogger(BackendService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -240,9 +47,6 @@ public class BackendService {
     private FriendRequestRepository friendRequestRepository;
 
     @Autowired
-    private TaskRepository taskRepository;
-
-    @Autowired
     private ChallengeRepository challengeRepository;
 
     @Autowired
@@ -252,6 +56,7 @@ public class BackendService {
     private PenaltyRepository penaltyRepository;
 
     public List<UserProfileDto> searchByEmail(String queryEmail) {
+        log.info("searchByEmail: query='{}'", queryEmail);
         List<UserProfileDto> out = new ArrayList<>();
         List<User> users = userRepository.findByEmailContaining(queryEmail);
         for (User u : users) {
@@ -266,12 +71,15 @@ public class BackendService {
 
     // --- Friends ---
     public boolean sendFriendRequest(Long fromId, Long friendId) {
+        log.info("sendFriendRequest: fromId={} friendId={}", fromId, friendId);
         if (fromId.equals(friendId)) {
+            log.warn("sendFriendRequest: cannot send request to self: {}", fromId);
             return false;
         }
         Optional<User> of = userRepository.findById(fromId);
         Optional<User> ofr = userRepository.findById(friendId);
         if (of.isEmpty() || ofr.isEmpty()) {
+            log.warn("sendFriendRequest: one of users not found (fromId={}, friendId={})", fromId, friendId);
             return false;
         }
         FriendRequest fr = new FriendRequest();
@@ -280,20 +88,25 @@ public class BackendService {
         fr.setStatus("pending");
         fr.setCreatedAt(Instant.now().toString());
         friendRequestRepository.save(fr);
+        log.info("sendFriendRequest: saved friend request id={}", fr.getId());
         return true;
     }
 
     public List<FriendRequest> getFriendRequests(Long uid) {
+        log.info("getFriendRequests: uid={}", uid);
         return friendRequestRepository.findByToUserId(uid);
     }
 
     public boolean acceptFriendRequest(Long uid, Long requestId) {
+        log.info("acceptFriendRequest: uid={} requestId={}", uid, requestId);
         Optional<FriendRequest> ofr = friendRequestRepository.findById(requestId);
         if (ofr.isEmpty()) {
+            log.warn("acceptFriendRequest: request not found: {}", requestId);
             return false;
         }
         FriendRequest fr = ofr.get();
         if (!Objects.equals(fr.getToUser().getId(), uid)) {
+            log.warn("acceptFriendRequest: user {} is not the recipient of request {}", uid, requestId);
             return false;
         }
         User a = fr.getToUser();
@@ -303,12 +116,15 @@ public class BackendService {
         userRepository.save(a);
         userRepository.save(b);
         friendRequestRepository.delete(fr);
+        log.info("acceptFriendRequest: users {} and {} are now friends", a.getId(), b.getId());
         return true;
     }
 
     public boolean deleteFriendRequest(Long uid, Long requestId) {
+        log.info("deleteFriendRequest: uid={} requestId={}", uid, requestId);
         Optional<FriendRequest> ofr = friendRequestRepository.findById(requestId);
         if (ofr.isEmpty()) {
+            log.warn("deleteFriendRequest: request not found: {}", requestId);
             return false;
         }
         FriendRequest fr = ofr.get();
@@ -316,15 +132,19 @@ public class BackendService {
         Long fromIdStr = fr.getFromUser().getId();
         Long toIdStr = fr.getToUser().getId();
         if (!Objects.equals(uid, fromIdStr) && !Objects.equals(uid, toIdStr)) {
+            log.warn("deleteFriendRequest: uid {} not allowed to delete request {}", uid, requestId);
             return false;
         }
         friendRequestRepository.delete(fr);
+        log.info("deleteFriendRequest: deleted request {}", requestId);
         return true;
     }
 
     public List<UserProfileDto> listFriends(Long uid) {
+        log.info("listFriends: uid={}", uid);
         Optional<User> ou = userRepository.findById(uid);
         if (ou.isEmpty()) {
+            log.warn("listFriends: user not found: {}", uid);
             return Collections.emptyList();
         }
         List<UserProfileDto> out = new ArrayList<>();
@@ -338,102 +158,10 @@ public class BackendService {
         return out;
     }
 
-    // --- Tasks ---
-    public List<TaskDto> getTasks(Long uid) {
-        List<Task> list = taskRepository.findByUserId(uid);
-        List<TaskDto> out = new ArrayList<>();
-        for (Task t : list) {
-            TaskDto dto = new TaskDto();
-            dto.setId(String.valueOf(t.getId()));
-            dto.setUserId(String.valueOf(t.getUser().getId()));
-            dto.setTitle(t.getTitle());
-            dto.setDescription(t.getDescription());
-            dto.setPeriod(t.getPeriod());
-            dto.setPenaltyAmount(t.getPenaltyAmount());
-            dto.setPenaltyRecipientId(
-                    t.getPenaltyRecipient() != null ? String.valueOf(t.getPenaltyRecipient().getId()) : null);
-            dto.setStatus(t.getStatus());
-            dto.setCompletedDates(t.getCompletedDates());
-            dto.setCreatedAt(t.getCreatedAt());
-            dto.setNextDueDate(t.getNextDueDate());
-            dto.setStartDate(t.getStartDate());
-            dto.setEndDate(t.getEndDate());
-            out.add(dto);
-        }
-        return out;
-    }
-
-    public TaskDto createTask(Long uid, TaskDto input) {
-        Optional<User> ou = userRepository.findById(uid);
-        if (ou.isEmpty()) {
-            return null;
-        }
-        Task t = new Task();
-        t.setUser(ou.get());
-        t.setTitle(input.getTitle());
-        t.setDescription(input.getDescription());
-        t.setPeriod(input.getPeriod());
-        t.setPenaltyAmount(input.getPenaltyAmount());
-        if (input.getPenaltyRecipientId() != null) {
-            Long pid = Long.parseLong(input.getPenaltyRecipientId());
-            userRepository.findById(pid).ifPresent(t::setPenaltyRecipient);
-        }
-        t.setStatus(input.getStatus() == null ? "active" : input.getStatus());
-        t.setCreatedAt(input.getCreatedAt() == null ? Instant.now().toString() : input.getCreatedAt());
-        t.setNextDueDate(
-                input.getNextDueDate() == null ? LocalDate.now().plusDays(1).toString() : input.getNextDueDate());
-        if (input.getCompletedDates() != null) {
-            t.setCompletedDates(input.getCompletedDates());
-        }
-        t.setStartDate(input.getStartDate());
-        t.setEndDate(input.getEndDate());
-        taskRepository.save(t);
-        input.setId(String.valueOf(t.getId()));
-        input.setUserId(String.valueOf(uid));
-        return input;
-    }
-
-    public boolean completeTask(Long uid, String taskIdStr) {
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            return false;
-        }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return false;
-        }
-        String today = LocalDate.now().toString();
-        if (!t.getCompletedDates().contains(today)) {
-            t.getCompletedDates().add(today);
-        }
-        t.setNextDueDate(LocalDate.now().plusDays(1).toString());
-        taskRepository.save(t);
-        return true;
-    }
-
-    public Map<String, Object> applyTaskPenalty(Long uid, String taskIdStr) {
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            return null;
-        }
-        Task t = ot.get();
-        Penalty p = new Penalty();
-        p.setType("task");
-        p.setTask(t);
-        userRepository.findById(uid).ifPresent(p::setFromUser);
-        p.setToUser(t.getPenaltyRecipient());
-        p.setAmount(t.getPenaltyAmount());
-        p.setReason("Incomplete task: " + t.getTitle());
-        p.setCreatedAt(Instant.now().toString());
-        penaltyRepository.save(p);
-        return Map.of("success", true, "penaltyId", String.valueOf(p.getId()));
-    }
-
     // --- Challenges ---
     public List<Challenge> getChallengesEntities(Long userId) {
         // helper: return challenges where creator or invited
+        log.info("getChallengesEntities: userId={}", userId);
         List<Challenge> all = challengeRepository.findAll();
         List<Challenge> out = new ArrayList<>();
         for (Challenge c : all) {
@@ -445,6 +173,7 @@ public class BackendService {
     }
 
     public List<ChallengeDto> getChallenges(Long uid) {
+        log.info("getChallenges: uid={}", uid);
         List<Challenge> list = getChallengesEntities(uid);
         List<ChallengeDto> out = new ArrayList<>();
         for (Challenge c : list) {
@@ -478,8 +207,10 @@ public class BackendService {
     }
 
     public ChallengeDto createChallenge(Long uid, ChallengeDto input) {
+        log.info("createChallenge: uid={} title={}", uid, input == null ? null : input.getTitle());
         Optional<User> ou = userRepository.findById(uid);
         if (ou.isEmpty()) {
+            log.warn("createChallenge: user not found: {}", uid);
             return null;
         }
         Challenge c = new Challenge();
@@ -508,6 +239,7 @@ public class BackendService {
         cp.setStatus("accepted");
         c.getParticipants().add(cp);
         challengeRepository.save(c);
+        log.info("createChallenge: created challenge id={} by user={}", c.getId(), uid);
         ChallengeDto out = new ChallengeDto();
         out.setId(String.valueOf(c.getId()));
         out.setCreatorId(String.valueOf(c.getCreator().getId()));
@@ -515,9 +247,11 @@ public class BackendService {
     }
 
     public boolean acceptChallenge(Long uid, String challengeIdStr) {
+        log.info("acceptChallenge: uid={} challengeId={}", uid, challengeIdStr);
         Long cid = Long.parseLong(challengeIdStr);
         Optional<Challenge> oc = challengeRepository.findById(cid);
         if (oc.isEmpty()) {
+            log.warn("acceptChallenge: challenge not found: {}", cid);
             return false;
         }
         Challenge c = oc.get();
@@ -535,13 +269,16 @@ public class BackendService {
         np.setStatus("accepted");
         c.getParticipants().add(np);
         challengeRepository.save(c);
+        log.info("acceptChallenge: user {} accepted challenge {}", uid, cid);
         return true;
     }
 
     public boolean completeChallenge(Long uid, String challengeIdStr) {
+        log.info("completeChallenge: uid={} challengeId={}", uid, challengeIdStr);
         Long cid = Long.parseLong(challengeIdStr);
         Optional<Challenge> oc = challengeRepository.findById(cid);
         if (oc.isEmpty()) {
+            log.warn("completeChallenge: challenge not found: {}", cid);
             return false;
         }
         Challenge c = oc.get();
@@ -552,6 +289,7 @@ public class BackendService {
                     p.getCompletedDates().add(today);
                 }
                 challengeParticipantRepository.save(p);
+                log.info("completeChallenge: user {} completed challenge {} for date {}", uid, cid, today);
                 return true;
             }
         }
@@ -559,9 +297,11 @@ public class BackendService {
     }
 
     public Map<String, Object> applyChallengePenalty(Long uid, String challengeIdStr, String failedUserIdStr) {
+        log.info("applyChallengePenalty: uid={} challengeId={} failedUserId={}", uid, challengeIdStr, failedUserIdStr);
         Long cid = Long.parseLong(challengeIdStr);
         Optional<Challenge> oc = challengeRepository.findById(cid);
         if (oc.isEmpty()) {
+            log.warn("applyChallengePenalty: challenge not found: {}", cid);
             return null;
         }
         Challenge c = oc.get();
@@ -573,14 +313,17 @@ public class BackendService {
         p.setReason("Failed challenge: " + c.getTitle());
         p.setCreatedAt(Instant.now().toString());
         penaltyRepository.save(p);
+        log.info("applyChallengePenalty: penalty created id={} amount={}", p.getId(), p.getAmount());
         return Map.of("success", true, "penaltyId", String.valueOf(p.getId()));
     }
 
     public List<Penalty> getPenaltiesEntities(Long userId) {
+        log.info("getPenaltiesEntities: userId={}", userId);
         return penaltyRepository.findByFromUserIdOrToUserId(userId, userId);
     }
 
     public List<PenaltyDto> getPenalties(Long uid) {
+        log.info("getPenalties: uid={}", uid);
         List<Penalty> list = getPenaltiesEntities(uid);
         List<PenaltyDto> out = new ArrayList<>();
         for (Penalty p : list) {
@@ -600,6 +343,7 @@ public class BackendService {
 
     // helper to resolve token->id
     public String getUserIdForToken(String token) {
+        log.debug("getUserIdForToken: tokenPresent={}", token != null);
         if (token == null) {
             return null;
         }
@@ -608,6 +352,7 @@ public class BackendService {
         }
         AuthToken t = authTokenRepository.findById(token).orElse(null);
         if (t == null) {
+            log.warn("getUserIdForToken: token not found");
             return null;
         }
         return String.valueOf(t.getUser().getId());

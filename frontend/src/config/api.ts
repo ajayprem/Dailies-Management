@@ -10,7 +10,7 @@ export const API_ENDPOINTS = {
   profile: `${API_BASE_URL}/auth/profile`,
   
   // Friends
-  searchUsers: `${API_BASE_URL}/users/search`,
+  searchUsers: `${API_BASE_URL}/friends/search`,
   sendFriendRequest: `${API_BASE_URL}/friends/request`,
   getFriendRequests: `${API_BASE_URL}/friends/requests`,
   acceptFriendRequest: `${API_BASE_URL}/friends/accept`,
@@ -50,8 +50,9 @@ export async function apiCall(
     ...options.headers,
   };
   
+  console.log('API Call to:', url, 'with headers:', headers);
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
   
   try {

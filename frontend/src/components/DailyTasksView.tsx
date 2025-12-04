@@ -167,12 +167,14 @@ export function DailyTasksView({ tasks, onTaskUpdate }: DailyTasksViewProps) {
                             {task.description && (
                               <p className="text-sm text-gray-600 mb-2">{task.description}</p>
                             )}
-                            <div className="flex items-center gap-3 text-sm text-gray-500">
-                              <span>Penalty: ${task.penaltyAmount}</span>
-                              {task.recipientFriend && (
-                                <span>→ {task.recipientFriend.name}</span>
-                              )}
-                            </div>
+                            {task.penaltyAmount && (
+                              <div className="flex flex-col gap-1 text-sm text-gray-500">
+                                <span>Penalty: ₹{task.penaltyAmount}</span>
+                                {task.recipientFriends && task.recipientFriends.length > 0 && (
+                                  <span>→ {task.recipientFriends.map((f: any) => f.name).join(', ')}</span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <Button

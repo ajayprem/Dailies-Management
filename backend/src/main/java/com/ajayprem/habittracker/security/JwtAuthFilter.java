@@ -8,8 +8,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.ajayprem.habittracker.service.BackendService;
 import com.ajayprem.habittracker.service.JwtService;
 
 import jakarta.servlet.FilterChain;
@@ -23,8 +24,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private BackendService userService; 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -32,12 +32,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        System.out.println("JwtAuthFilter: Processing request " + request.getRequestURI());
-
+                
         String authHeader = request.getHeader("Authorization");
+        log.debug("JwtAuthFilter: Processing request {} Authorization={} ", request.getRequestURI(), authHeader);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("No Authorization header or does not start with Bearer");
+            log.error("JwtAuthFilter: No Authorization header or does not start with Bearer");
             filterChain.doFilter(request, response);
             return;
         }
@@ -48,17 +48,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (jwtService.isTokenValid(token) && userId != null) {
 
             UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            userId,
-                            null,
-                            null
-                    );
+                new UsernamePasswordAuthenticationToken(
+                    userId,
+                    null,
+                    null
+                );
 
             authToken.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
+                new WebAuthenticationDetailsSource().buildDetails(request)
             );
 
             SecurityContextHolder.getContext().setAuthentication(authToken);
+            log.debug("JwtAuthFilter: set authentication for userId={}", userId);
+        } else {
+            log.debug("JwtAuthFilter: token invalid or userId null");
         }
 
         filterChain.doFilter(request, response);
