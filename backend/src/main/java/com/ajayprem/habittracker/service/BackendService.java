@@ -55,10 +55,19 @@ public class BackendService {
     @Autowired
     private PenaltyRepository penaltyRepository;
 
-    public List<UserProfileDto> searchByEmail(String queryEmail) {
-        log.info("searchByEmail: query='{}'", queryEmail);
+    public List<UserProfileDto> searchByEmail(String query) {
+        log.info("searchByEmail: query='{}'", query);
         List<UserProfileDto> out = new ArrayList<>();
-        List<User> users = userRepository.findByEmailContaining(queryEmail);
+        List<User> users = userRepository.findByEmailContaining(query);
+        for (User u : users) {
+            UserProfileDto d = new UserProfileDto();
+            d.setId(String.valueOf(u.getId()));
+            d.setEmail(u.getEmail());
+            d.setName(u.getName());
+            out.add(d);
+        }
+
+        users = userRepository.findByNameContaining(query);
         for (User u : users) {
             UserProfileDto d = new UserProfileDto();
             d.setId(String.valueOf(u.getId()));

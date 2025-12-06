@@ -15,7 +15,7 @@ interface FriendsManagerProps {
 export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
   const [friends, setFriends] = useState<any[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
-  const [searchEmail, setSearchEmail] = useState('');
+  const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,13 +45,13 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
   };
 
   const handleSearch = async () => {
-    if (!searchEmail.trim()) {
+    if (!search.trim()) {
       setSearchResults([]);
       return;
     }
 
     try {
-      const data = await apiCall(`${API_ENDPOINTS.searchUsers}?email=${encodeURIComponent(searchEmail)}`);
+      const data = await apiCall(`${API_ENDPOINTS.searchUsers}?search=${encodeURIComponent(search)}`);
       setSearchResults(data.users || []);
     } catch (error) {
       console.error('Error searching users:', error);
@@ -67,7 +67,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
 
       alert('Friend request sent!');
       setSearchResults([]);
-      setSearchEmail('');
+      setSearch('');
     } catch (error) {
       console.error('Error sending friend request:', error);
     }
@@ -143,7 +143,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
       <Card>
         <CardHeader>
           <CardTitle>Add Friends</CardTitle>
-          <CardDescription>Search for users by email address</CardDescription>
+          <CardDescription>Search for users by email/username</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -152,8 +152,8 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                 <Input
                   type="email"
                   placeholder="Enter email address"
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>

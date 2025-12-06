@@ -12,4 +12,5 @@ import com.ajayprem.habittracker.model.User;
 public interface UserRepository extends JpaRepository<User, Long> {
 	Optional<User> findByEmail(String email);
 	List<User> findByEmailContaining(String email);
+	List<User> findByNameContaining(String name);
 }

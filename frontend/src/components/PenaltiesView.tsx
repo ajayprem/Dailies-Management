@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, IndianRupee } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { API_ENDPOINTS, apiCall } from '../config/api';
 
@@ -93,7 +93,7 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
         <CardContent>
           {penalties.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <DollarSign className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+              <IndianRupee className="w-12 h-12 mx-auto mb-3 text-gray-400" />
               <p>No penalties yet. Keep completing your tasks!</p>
             </div>
           ) : (

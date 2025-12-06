@@ -29,9 +29,9 @@ public class FriendsController {
     private BackendService svc;
 
     @GetMapping("/search")
-    public ResponseEntity<?> search(@RequestParam("email") String email) {
-        log.info("FriendsController: search email={}", email);
-        List<UserProfileDto> users = svc.searchByEmail(email);
+    public ResponseEntity<?> search(@RequestParam("search") String search) {
+        log.info("FriendsController: search user={}", search);
+        List<UserProfileDto> users = svc.searchByEmail(search);
         return ResponseEntity.ok(Map.of("users", users));
     }
 
