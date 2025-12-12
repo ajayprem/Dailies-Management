@@ -163,7 +163,7 @@ Accept a friend request.
 **Request Body:**
 ```json
 {
-  "requestId": "request_id"
+  "fromUserId": "sender_user_id"
 }
 ```
 

@@ -31,7 +31,7 @@ export default function App() {
       const uid = localStorage.getItem('userId');
 
       if (token && uid) {
-        setAccessToken(accessToken);
+        setAccessToken(token);
         setUserId(uid);
         fetchProfile();
       }

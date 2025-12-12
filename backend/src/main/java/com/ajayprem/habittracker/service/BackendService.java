@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import com.ajayprem.habittracker.model.AuthToken;
 import com.ajayprem.habittracker.model.Challenge;
 import com.ajayprem.habittracker.model.ChallengeParticipant;
 import com.ajayprem.habittracker.model.FriendRequest;
+import com.ajayprem.habittracker.model.FriendRequestKey;
 import com.ajayprem.habittracker.model.Penalty;
 import com.ajayprem.habittracker.model.User;
 import com.ajayprem.habittracker.repository.AuthTokenRepository;
@@ -30,6 +33,7 @@ import com.ajayprem.habittracker.repository.ChallengeRepository;
 import com.ajayprem.habittracker.repository.FriendRequestRepository;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
+import com.ajayprem.habittracker.util.CurrentUser;
 
 @Service
 @Transactional
@@ -44,9 +48,6 @@ public class BackendService {
     private AuthTokenRepository authTokenRepository;
 
     @Autowired
-    private FriendRequestRepository friendRequestRepository;
-
-    @Autowired
     private ChallengeRepository challengeRepository;
 
     @Autowired
@@ -55,117 +56,6 @@ public class BackendService {
     @Autowired
     private PenaltyRepository penaltyRepository;
 
-    public List<UserProfileDto> searchByEmail(String query) {
-        log.info("searchByEmail: query='{}'", query);
-        List<UserProfileDto> out = new ArrayList<>();
-        List<User> users = userRepository.findByEmailContaining(query);
-        for (User u : users) {
-            UserProfileDto d = new UserProfileDto();
-            d.setId(String.valueOf(u.getId()));
-            d.setEmail(u.getEmail());
-            d.setName(u.getName());
-            out.add(d);
-        }
-
-        users = userRepository.findByNameContaining(query);
-        for (User u : users) {
-            UserProfileDto d = new UserProfileDto();
-            d.setId(String.valueOf(u.getId()));
-            d.setEmail(u.getEmail());
-            d.setName(u.getName());
-            out.add(d);
-        }
-        return out;
-    }
-
-    // --- Friends ---
-    public boolean sendFriendRequest(Long fromId, Long friendId) {
-        log.info("sendFriendRequest: fromId={} friendId={}", fromId, friendId);
-        if (fromId.equals(friendId)) {
-            log.warn("sendFriendRequest: cannot send request to self: {}", fromId);
-            return false;
-        }
-        Optional<User> of = userRepository.findById(fromId);
-        Optional<User> ofr = userRepository.findById(friendId);
-        if (of.isEmpty() || ofr.isEmpty()) {
-            log.warn("sendFriendRequest: one of users not found (fromId={}, friendId={})", fromId, friendId);
-            return false;
-        }
-        FriendRequest fr = new FriendRequest();
-        fr.setFromUser(of.get());
-        fr.setToUser(ofr.get());
-        fr.setStatus("pending");
-        fr.setCreatedAt(Instant.now().toString());
-        friendRequestRepository.save(fr);
-        log.info("sendFriendRequest: saved friend request id={}", fr.getId());
-        return true;
-    }
-
-    public List<FriendRequest> getFriendRequests(Long uid) {
-        log.info("getFriendRequests: uid={}", uid);
-        return friendRequestRepository.findByToUserId(uid);
-    }
-
-    public boolean acceptFriendRequest(Long uid, Long requestId) {
-        log.info("acceptFriendRequest: uid={} requestId={}", uid, requestId);
-        Optional<FriendRequest> ofr = friendRequestRepository.findById(requestId);
-        if (ofr.isEmpty()) {
-            log.warn("acceptFriendRequest: request not found: {}", requestId);
-            return false;
-        }
-        FriendRequest fr = ofr.get();
-        if (!Objects.equals(fr.getToUser().getId(), uid)) {
-            log.warn("acceptFriendRequest: user {} is not the recipient of request {}", uid, requestId);
-            return false;
-        }
-        User a = fr.getToUser();
-        User b = fr.getFromUser();
-        a.getFriends().add(b);
-        b.getFriends().add(a);
-        userRepository.save(a);
-        userRepository.save(b);
-        friendRequestRepository.delete(fr);
-        log.info("acceptFriendRequest: users {} and {} are now friends", a.getId(), b.getId());
-        return true;
-    }
-
-    public boolean deleteFriendRequest(Long uid, Long requestId) {
-        log.info("deleteFriendRequest: uid={} requestId={}", uid, requestId);
-        Optional<FriendRequest> ofr = friendRequestRepository.findById(requestId);
-        if (ofr.isEmpty()) {
-            log.warn("deleteFriendRequest: request not found: {}", requestId);
-            return false;
-        }
-        FriendRequest fr = ofr.get();
-        // Only the sender or the recipient may delete the request
-        Long fromIdStr = fr.getFromUser().getId();
-        Long toIdStr = fr.getToUser().getId();
-        if (!Objects.equals(uid, fromIdStr) && !Objects.equals(uid, toIdStr)) {
-            log.warn("deleteFriendRequest: uid {} not allowed to delete request {}", uid, requestId);
-            return false;
-        }
-        friendRequestRepository.delete(fr);
-        log.info("deleteFriendRequest: deleted request {}", requestId);
-        return true;
-    }
-
-    public List<UserProfileDto> listFriends(Long uid) {
-        log.info("listFriends: uid={}", uid);
-        Optional<User> ou = userRepository.findById(uid);
-        if (ou.isEmpty()) {
-            log.warn("listFriends: user not found: {}", uid);
-            return Collections.emptyList();
-        }
-        List<UserProfileDto> out = new ArrayList<>();
-        for (User f : ou.get().getFriends()) {
-            UserProfileDto d = new UserProfileDto();
-            d.setId(String.valueOf(f.getId()));
-            d.setName(f.getName());
-            d.setEmail(f.getEmail());
-            out.add(d);
-        }
-        return out;
-    }
 
     // --- Challenges ---
     public List<Challenge> getChallengesEntities(Long userId) {

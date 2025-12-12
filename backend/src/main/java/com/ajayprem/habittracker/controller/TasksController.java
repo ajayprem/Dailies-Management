@@ -74,6 +74,10 @@ public class TasksController {
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         log.info("TasksController: createTask userId={} title={}", userId, body == null ? null : body.getTitle());
         TaskDto created = taskService.createTask(userId, body);
+        if (created == null) {
+            log.warn("TasksController: createTask failed for userId={}", userId);
+            return ResponseEntity.badRequest().body(Map.of("error", "invalid task data"));
+        }
         return ResponseEntity.ok(Map.of("task", created));
     }
 

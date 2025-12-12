@@ -14,7 +14,9 @@ export const API_ENDPOINTS = {
   sendFriendRequest: `${API_BASE_URL}/friends/request`,
   getFriendRequests: `${API_BASE_URL}/friends/requests`,
   acceptFriendRequest: `${API_BASE_URL}/friends/accept`,
+  deleteFriendRequest: `${API_BASE_URL}/friends/delete`,
   getFriends: `${API_BASE_URL}/friends`,
+  getSentFriendRequests: `${API_BASE_URL}/friends/sent-requests`,
   
   // Tasks
   getTasks: `${API_BASE_URL}/tasks`,

@@ -1,11 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { UserPlus, Users, Check, X } from 'lucide-react';
-import { Badge } from './ui/badge';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { useState, useEffect, use } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { UserPlus, Users, Check, X } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { API_ENDPOINTS, apiCall } from "../config/api";
+import { toast } from "sonner";
 
 interface FriendsManagerProps {
   accessToken: string;
@@ -13,23 +20,36 @@ interface FriendsManagerProps {
 }
 
 export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
+  const [sentRequests, setSentRequests] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchSentRequests();
     fetchFriends();
     fetchFriendRequests();
   }, []);
+
+  const fetchSentRequests = async () => {
+    try {
+      const data = await apiCall(API_ENDPOINTS.getSentFriendRequests);
+      setSentRequests(data.requests || []);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFriends = async () => {
     try {
       const data = await apiCall(API_ENDPOINTS.getFriends);
       setFriends(data.friends || []);
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      console.error("Error fetching friends:", error);
     } finally {
       setLoading(false);
     }
@@ -40,7 +60,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
       const data = await apiCall(API_ENDPOINTS.getFriendRequests);
       setFriendRequests(data.requests || []);
     } catch (error) {
-      console.error('Error fetching friend requests:', error);
+      console.error("Error fetching friend requests:", error);
     }
   };
 
@@ -51,39 +71,61 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
     }
 
     try {
-      const data = await apiCall(`${API_ENDPOINTS.searchUsers}?search=${encodeURIComponent(search)}`);
+      const data = await apiCall(
+        `${API_ENDPOINTS.searchUsers}?search=${encodeURIComponent(search)}`
+      );
       setSearchResults(data.users || []);
+      if (data.users.length === 0) {
+        toast.info("No users found");
+      }
     } catch (error) {
-      console.error('Error searching users:', error);
+      console.error("Error searching users:", error);
     }
   };
 
   const handleSendRequest = async (friendId: string) => {
     try {
       await apiCall(API_ENDPOINTS.sendFriendRequest, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ friendId }),
       });
 
-      alert('Friend request sent!');
+      toast.success("Friend request sent!");
       setSearchResults([]);
-      setSearch('');
+      setSearch("");
+      fetchSentRequests();
     } catch (error) {
-      console.error('Error sending friend request:', error);
+      console.error("Error sending friend request:", error);
     }
   };
 
-  const handleAcceptRequest = async (requestId: string) => {
+  const handleAcceptRequest = async (fromUserId: string) => {
     try {
       await apiCall(API_ENDPOINTS.acceptFriendRequest, {
-        method: 'POST',
-        body: JSON.stringify({ requestId }),
+        method: "POST",
+        body: JSON.stringify({ fromUserId: fromUserId }),
       });
 
       fetchFriends();
       fetchFriendRequests();
+      toast.success("Friend request accepted!");
     } catch (error) {
-      console.error('Error accepting friend request:', error);
+      console.error("Error accepting friend request:", error);
+    }
+  };
+
+  const handleDeclineRequest = async (fromUserId: string) => {
+    try {
+      await apiCall(API_ENDPOINTS.deleteFriendRequest, {
+        method: "POST",
+        body: JSON.stringify({ fromUserId: fromUserId }),
+      });
+
+      fetchFriends();
+      fetchFriendRequests();
+      toast.success("Friend request declined!");
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
     }
   };
 
@@ -95,7 +137,9 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
     <div className="space-y-6">
       <div>
         <h2>Friends</h2>
-        <p className="text-gray-600 mt-1">Manage your friends and friend requests</p>
+        <p className="text-gray-600 mt-1">
+          Manage your friends and friend requests
+        </p>
       </div>
 
       {/* Friend Requests */}
@@ -103,7 +147,9 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
         <Card>
           <CardHeader>
             <CardTitle>Friend Requests</CardTitle>
-            <CardDescription>You have {friendRequests.length} pending request(s)</CardDescription>
+            <CardDescription>
+              You have {friendRequests.length} pending request(s)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -114,23 +160,49 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                 >
                   <div>
                     <p>{request.fromUser.name}</p>
-                    <p className="text-sm text-gray-600">{request.fromUser.email}</p>
+                    <p className="text-sm text-gray-600">
+                      {request.fromUser.email}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => handleAcceptRequest(request.id)}
+                      onClick={() => handleAcceptRequest(request.fromUser.id)}
                     >
                       <Check className="w-4 h-4 mr-1" />
                       Accept
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                    >
+                    <Button size="sm" variant="outline" onClick={() => handleDeclineRequest(request.fromUser.id)}>
                       <X className="w-4 h-4 mr-1" />
                       Decline
                     </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* sent friend requests */}
+      {sentRequests.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sent Friend Requests</CardTitle>
+            <CardDescription>
+              You have {sentRequests.length} pending request(s)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {sentRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div>
+                    <p>{request.name}</p>
+                    <p className="text-sm text-gray-600">{request.email}</p>
                   </div>
                 </div>
               ))}
@@ -154,12 +226,10 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                   placeholder="Enter email address"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 />
               </div>
-              <Button onClick={handleSearch}>
-                Search
-              </Button>
+              <Button onClick={handleSearch}>Search</Button>
             </div>
             {searchResults.length > 0 && (
               <div className="space-y-2">
@@ -192,7 +262,9 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
         <CardHeader>
           <CardTitle>Your Friends</CardTitle>
           <CardDescription>
-            {friends.length === 0 ? 'No friends yet' : `${friends.length} friend(s)`}
+            {friends.length === 0
+              ? "No friends yet"
+              : `${friends.length} friend(s)`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -204,10 +276,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {friends.map((friend) => (
-                <div
-                  key={friend.id}
-                  className="p-4 bg-gray-50 rounded-lg"
-                >
+                <div key={friend.id} className="p-4 bg-gray-50 rounded-lg">
                   <p>{friend.name}</p>
                   <p className="text-sm text-gray-600">{friend.email}</p>
                 </div>

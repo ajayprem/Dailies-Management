@@ -6,8 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.ajayprem.habittracker.model.FriendRequest;
+import com.ajayprem.habittracker.model.FriendRequestKey;
 
 @Repository
-public interface FriendRequestRepository extends JpaRepository<FriendRequest, Long> {
+public interface FriendRequestRepository extends JpaRepository<FriendRequest, FriendRequestKey> {
     List<FriendRequest> findByToUserId(Long toUserId);
+
+    List<FriendRequest> findByFromUserId(Long fromUserId);
 }

@@ -226,9 +226,20 @@ public class TaskService {
         t.setTitle(input.getTitle());
         t.setDescription(input.getDescription());
         t.setPeriod(input.getPeriod());
-        t.setPenaltyAmount(input.getPenaltyAmount());
-        if (input.getPenaltyRecipientIds() != null && !input.getPenaltyRecipientIds().isEmpty()) {
-            for (String recipientId : input.getPenaltyRecipientIds()) {
+        // Penalty fields are optional (personal tasks). Validate pair-wise presence.
+        double penaltyAmount = input.getPenaltyAmount();
+        List<String> recipients = input.getPenaltyRecipientIds();
+        if (recipients != null && !recipients.isEmpty() && penaltyAmount <= 0) {
+            log.warn("createTask: penaltyRecipientIds provided but penaltyAmount is missing/zero");
+            return null;
+        }
+        if (penaltyAmount > 0) {
+            t.setPenaltyAmount(penaltyAmount);
+        } else {
+            t.setPenaltyAmount(0.0);
+        }
+        if (recipients != null && !recipients.isEmpty()) {
+            for (String recipientId : recipients) {
                 Long pid = Long.parseLong(recipientId);
                 userRepository.findById(pid).ifPresent(recipient -> t.getPenaltyRecipients().add(recipient));
             }
@@ -281,15 +292,23 @@ public class TaskService {
         }
         Task t = ot.get();
         List<Long> penaltyIds = new ArrayList<>();
-        
-        // Create a penalty for each recipient
+        // No penalty configured (personal task)
+        if (t.getPenaltyRecipients() == null || t.getPenaltyRecipients().isEmpty() || t.getPenaltyAmount() <= 0) {
+            log.info("applyTaskPenalty: no penalty recipients or amount for task {}", tid);
+            return Map.of("success", false, "reason", "no_penalty_configured");
+        }
+
+        // Split penalty amount among recipients
+        int numRecipients = t.getPenaltyRecipients().size();
+        double splitAmount = t.getPenaltyAmount() / (double) numRecipients;
+
         for (User recipient : t.getPenaltyRecipients()) {
             Penalty p = new Penalty();
             p.setType("task");
             p.setTask(t);
             userRepository.findById(uid).ifPresent(p::setFromUser);
             p.setToUser(recipient);
-            p.setAmount(t.getPenaltyAmount());
+            p.setAmount(splitAmount);
             p.setReason("Incomplete task: " + t.getTitle());
             p.setCreatedAt(Instant.now().toString());
             penaltyRepository.save(p);
