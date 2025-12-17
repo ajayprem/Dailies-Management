@@ -2,6 +2,8 @@ package com.ajayprem.habittracker.service;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -145,10 +147,21 @@ public class TaskService {
             return Map.of();
         }
         List<String> completedDates = t.getCompletedDates();
+        log.info("getTaskStats: completedDates={}", completedDates);
         int totalCompletions = completedDates.size();
+        log.info("getTaskStats 1: completedDates={}", completedDates);
+
         int currentStreak = calcCurrentStreak(completedDates);
+
+        log.info("getTaskStats 2: completedDates={}", completedDates);
+
         int longestStreak = calcLongestStreak(completedDates);
+
+        log.info("getTaskStats 2: completedDates={}", completedDates);
+
         double completionRate = calcCompletionRate(t, completedDates);
+        log.info("getTaskStats 3: completedDates={}", completedDates);
+
         int totalPenalties = 0; // Optional: implement penalty count if needed
         double penaltyAmount = t.getPenaltyAmount();
         return Map.of(
@@ -196,11 +209,22 @@ public class TaskService {
         return longest;
     }
 
-     private double calcCompletionRate(Task t, List<String> completedDates) {
+    private double calcCompletionRate(Task t, List<String> completedDates) {
         if (completedDates == null || completedDates.isEmpty()) {
             return 0.0;
         }
-        LocalDate created = LocalDate.parse(t.getCreatedAt());
+        LocalDate created;
+        String createdAt = t.getCreatedAt();
+        try {
+            created = LocalDate.parse(createdAt);
+        } catch (DateTimeParseException ex) {
+            try {
+                Instant inst = Instant.parse(createdAt);
+                created = inst.atZone(ZoneId.systemDefault()).toLocalDate();
+            } catch (Exception e) {
+                created = LocalDate.now();
+            }
+        }
         LocalDate today = LocalDate.now();
         long days = java.time.temporal.ChronoUnit.DAYS.between(created, today) + 1;
         int expectedCompletions = 1;
@@ -259,8 +283,8 @@ public class TaskService {
         input.setUserId(String.valueOf(uid));
         return input;
     }
-    
-     public boolean completeTask(Long uid, String taskIdStr) {
+
+    public boolean completeTask(Long uid, String taskIdStr) {
         log.info("completeTask: uid={} taskId={}", uid, taskIdStr);
         Long tid = Long.parseLong(taskIdStr);
         Optional<Task> ot = taskRepository.findById(tid);
@@ -313,9 +337,10 @@ public class TaskService {
             p.setCreatedAt(Instant.now().toString());
             penaltyRepository.save(p);
             penaltyIds.add(p.getId());
-            log.info("applyTaskPenalty: created penalty id={} toUser={} amount={}", p.getId(), p.getToUser().getId(), p.getAmount());
+            log.info("applyTaskPenalty: created penalty id={} toUser={} amount={}", p.getId(), p.getToUser().getId(),
+                    p.getAmount());
         }
-        
+
         return Map.of("success", !penaltyIds.isEmpty(), "penaltyIds", penaltyIds);
     }
 
@@ -331,7 +356,7 @@ public class TaskService {
             dto.setDescription(t.getDescription());
             dto.setPeriod(t.getPeriod());
             dto.setPenaltyAmount(t.getPenaltyAmount());
-            
+
             // Convert penaltyRecipients list to IDs and DTOs
             List<String> recipientIds = new ArrayList<>();
             List<UserDto> recipientDtos = new ArrayList<>();
@@ -344,7 +369,7 @@ public class TaskService {
             }
             dto.setPenaltyRecipientIds(recipientIds);
             dto.setRecipientFriends(recipientDtos);
-            
+
             dto.setStatus(t.getStatus());
             dto.setCompletedDates(t.getCompletedDates());
             dto.setCreatedAt(t.getCreatedAt());
@@ -355,6 +380,5 @@ public class TaskService {
         }
         return out;
     }
-
 
 }

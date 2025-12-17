@@ -1,11 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
-import { TaskCalendar } from './TaskCalendar';
-import { TrendingUp, Calendar as CalendarIcon, Award, AlertTriangle, Target } from 'lucide-react';
-
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Progress } from "./ui/progress";
+import { TaskCalendar } from "./TaskCalendar";
+import {
+  TrendingUp,
+  Calendar as CalendarIcon,
+  Award,
+  AlertTriangle,
+  Target,
+} from "lucide-react";
+import { apiCall, API_ENDPOINTS } from "../config/api";
 interface TaskStatsProps {
   task: any;
   open: boolean;
@@ -22,83 +40,20 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
     penaltyAmount: 0,
   });
 
+  const fetchTaskStats = async (taskId: string) => {
+    try {
+      const data = await apiCall(API_ENDPOINTS.getTaskStats(taskId));
+      setStats(data.stats || []);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+    }
+  };
+
   useEffect(() => {
     if (open && task) {
-      calculateStats();
+      fetchTaskStats(task.id);
     }
   }, [open, task]);
-
-  const calculateStats = () => {
-    const completedDates = task.completedDates || [];
-    const totalCompletions = completedDates.length;
-
-    // Calculate current streak
-    let currentStreak = 0;
-    const today = new Date();
-    const sortedDates = [...completedDates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    
-    for (let i = 0; i < sortedDates.length; i++) {
-      const date = new Date(sortedDates[i]);
-      const expectedDate = new Date(today);
-      expectedDate.setDate(today.getDate() - i);
-      
-      const dateStr = date.toISOString().split('T')[0];
-      const expectedStr = expectedDate.toISOString().split('T')[0];
-      
-      if (dateStr === expectedStr) {
-        currentStreak++;
-      } else {
-        break;
-      }
-    }
-
-    // Calculate longest streak
-    let longestStreak = 0;
-    let tempStreak = 0;
-    const allDates = [...completedDates].sort();
-    
-    for (let i = 0; i < allDates.length; i++) {
-      if (i === 0) {
-        tempStreak = 1;
-      } else {
-        const prevDate = new Date(allDates[i - 1]);
-        const currDate = new Date(allDates[i]);
-        const diffDays = Math.floor((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 1) {
-          tempStreak++;
-        } else {
-          longestStreak = Math.max(longestStreak, tempStreak);
-          tempStreak = 1;
-        }
-      }
-    }
-    longestStreak = Math.max(longestStreak, tempStreak);
-
-    // Calculate completion rate
-    const createdDate = new Date(task.createdAt);
-    const daysSinceCreation = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    let expectedCompletions = 0;
-    
-    if (task.period === 'daily') {
-      expectedCompletions = daysSinceCreation;
-    } else if (task.period === 'weekly') {
-      expectedCompletions = Math.floor(daysSinceCreation / 7);
-    } else if (task.period === 'monthly') {
-      expectedCompletions = Math.floor(daysSinceCreation / 30);
-    }
-    
-    const completionRate = expectedCompletions > 0 ? (totalCompletions / expectedCompletions) * 100 : 0;
-
-    setStats({
-      totalCompletions,
-      currentStreak,
-      longestStreak,
-      completionRate: Math.min(completionRate, 100),
-      totalPenalties: 0, // This would come from backend
-      penaltyAmount: task.penaltyAmount,
-    });
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,28 +123,38 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Description:</span>
-                <span>{task.description || 'No description'}</span>
+                <span>{task.description || "No description"}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Period:</span>
-                <Badge variant={task.period === 'daily' ? 'default' : task.period === 'weekly' ? 'secondary' : 'outline'}>
+                <Badge
+                  variant={
+                    task.period === "daily"
+                      ? "default"
+                      : task.period === "weekly"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
                   {task.period}
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Penalty Amount:</span>
                 <span className="flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4 text-orange-500" />
-                  ${task.penaltyAmount}
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />$
+                  {task.penaltyAmount}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Next Due Date:</span>
-                <span>{task.nextDueDate || 'N/A'}</span>
+                <span>{task.nextDueDate || "N/A"}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Status:</span>
-                <Badge variant={task.status === 'active' ? 'default' : 'secondary'}>
+                <Badge
+                  variant={task.status === "active" ? "default" : "secondary"}
+                >
                   {task.status}
                 </Badge>
               </div>
@@ -197,8 +162,8 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
           </Card>
 
           {/* Calendar View */}
-          <TaskCalendar 
-            completedDates={task.completedDates || []} 
+          <TaskCalendar
+            completedDates={task.completedDates || []}
             taskTitle={task.title}
           />
 
@@ -209,17 +174,25 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
             </CardHeader>
             <CardContent className="space-y-2">
               {stats.completionRate >= 80 ? (
-                <p className="text-green-600">🎉 Excellent! You're maintaining a great completion rate!</p>
+                <p className="text-green-600">
+                  🎉 Excellent! You're maintaining a great completion rate!
+                </p>
               ) : stats.completionRate >= 50 ? (
-                <p className="text-yellow-600">👍 Good progress! Try to be more consistent.</p>
+                <p className="text-yellow-600">
+                  👍 Good progress! Try to be more consistent.
+                </p>
               ) : (
-                <p className="text-orange-600">⚠️ You might want to adjust your task schedule or penalties.</p>
+                <p className="text-orange-600">
+                  ⚠️ You might want to adjust your task schedule or penalties.
+                </p>
               )}
-              
+
               {stats.currentStreak >= 7 && (
-                <p className="text-indigo-600">🔥 You're on fire! {stats.currentStreak} day streak!</p>
+                <p className="text-indigo-600">
+                  🔥 You're on fire! {stats.currentStreak} day streak!
+                </p>
               )}
-              
+
               {stats.currentStreak === 0 && stats.totalCompletions > 0 && (
                 <p className="text-gray-600">💪 Time to start a new streak!</p>
               )}

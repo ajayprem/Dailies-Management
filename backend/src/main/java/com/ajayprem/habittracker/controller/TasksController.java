@@ -56,7 +56,6 @@ public class TasksController {
 
     @GetMapping("")
     public ResponseEntity<?> getTasks() {
-
         Long userId = CurrentUser.id();
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
