@@ -7,9 +7,12 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,20 +150,14 @@ public class TaskService {
             return Map.of();
         }
         List<String> completedDates = t.getCompletedDates();
-        log.info("getTaskStats: completedDates={}", completedDates);
+
         int totalCompletions = completedDates.size();
-        log.info("getTaskStats 1: completedDates={}", completedDates);
 
-        int currentStreak = calcCurrentStreak(completedDates);
-
-        log.info("getTaskStats 2: completedDates={}", completedDates);
+        int currentStreak = calcCurrentStreak(completedDates, t.getPeriod());
 
         int longestStreak = calcLongestStreak(completedDates);
 
-        log.info("getTaskStats 2: completedDates={}", completedDates);
-
         double completionRate = calcCompletionRate(t, completedDates);
-        log.info("getTaskStats 3: completedDates={}", completedDates);
 
         int totalPenalties = 0; // Optional: implement penalty count if needed
         double penaltyAmount = t.getPenaltyAmount();
@@ -173,22 +170,95 @@ public class TaskService {
                 "penaltyAmount", penaltyAmount);
     }
 
-    private int calcCurrentStreak(List<String> completedDates) {
+    private LocalDate parseToLocalDate(String s) {
+        if (s == null)
+            return null;
+        try {
+            return LocalDate.parse(s);
+        } catch (DateTimeParseException ex) {
+            try {
+                Instant inst = Instant.parse(s);
+                return inst.atZone(ZoneId.systemDefault()).toLocalDate();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    private int calcCurrentStreak(List<String> completedDates, String period) {
         if (completedDates == null || completedDates.isEmpty()) {
             return 0;
         }
-        List<LocalDate> dates = completedDates.stream().map(LocalDate::parse).sorted(Collections.reverseOrder())
-                .toList();
-        int streak = 0;
-        LocalDate today = LocalDate.now();
-        for (LocalDate d : dates) {
-            if (d.equals(today.minusDays(streak))) {
-                streak++;
-            } else {
-                break;
+
+        String p = period == null ? "daily" : period.toLowerCase();
+
+        switch (p) {
+            case "weekly" -> {
+                // convert to week-start (Monday) set
+                Set<LocalDate> weeks = new HashSet<>();
+                for (String s : completedDates) {
+                    LocalDate d = parseToLocalDate(s);
+                    if (d == null)
+                        continue;
+                    LocalDate weekStart = d
+                            .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                    weeks.add(weekStart);
+                }
+                if (weeks.isEmpty())
+                    return 0;
+                List<LocalDate> sorted = weeks.stream().sorted(Collections.reverseOrder()).collect(Collectors.toList());
+                int streak = 0;
+                LocalDate todayWeekStart = LocalDate.now()
+                        .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                for (LocalDate wk : sorted) {
+                    if (wk.equals(todayWeekStart.minusWeeks(streak))) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
+            }
+            case "monthly" -> {
+                // convert to month-start set
+                Set<LocalDate> months = new HashSet<>();
+                for (String s : completedDates) {
+                    LocalDate d = parseToLocalDate(s);
+                    if (d == null)
+                        continue;
+                    LocalDate monthStart = d.withDayOfMonth(1);
+                    months.add(monthStart);
+                }
+                if (months.isEmpty())
+                    return 0;
+                List<LocalDate> sorted = months.stream().sorted(Collections.reverseOrder()).collect(Collectors.toList());
+                int streak = 0;
+                LocalDate todayMonthStart = LocalDate.now().withDayOfMonth(1);
+                for (LocalDate m : sorted) {
+                    if (m.equals(todayMonthStart.minusMonths(streak))) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
+            }
+            default -> {
+                // default: daily
+                List<LocalDate> dates = completedDates.stream().map(this::parseToLocalDate).filter(Objects::nonNull)
+                        .sorted(Collections.reverseOrder()).collect(Collectors.toList());
+                int streak = 0;
+                LocalDate today = LocalDate.now();
+                for (LocalDate d : dates) {
+                    if (d.equals(today.minusDays(streak))) {
+                        streak++;
+                    } else {
+                        break;
+                    }
+                }
+                return streak;
             }
         }
-        return streak;
     }
 
     private int calcLongestStreak(List<String> completedDates) {
@@ -270,8 +340,6 @@ public class TaskService {
         }
         t.setStatus(input.getStatus() == null ? "active" : input.getStatus());
         t.setCreatedAt(input.getCreatedAt() == null ? Instant.now().toString() : input.getCreatedAt());
-        t.setNextDueDate(
-                input.getNextDueDate() == null ? LocalDate.now().plusDays(1).toString() : input.getNextDueDate());
         if (input.getCompletedDates() != null) {
             t.setCompletedDates(input.getCompletedDates());
         }
@@ -300,7 +368,6 @@ public class TaskService {
         if (!t.getCompletedDates().contains(today)) {
             t.getCompletedDates().add(today);
         }
-        t.setNextDueDate(LocalDate.now().plusDays(1).toString());
         taskRepository.save(t);
         log.info("completeTask: task {} marked complete for user {}", tid, uid);
         return true;
@@ -373,7 +440,6 @@ public class TaskService {
             dto.setStatus(t.getStatus());
             dto.setCompletedDates(t.getCompletedDates());
             dto.setCreatedAt(t.getCreatedAt());
-            dto.setNextDueDate(t.getNextDueDate());
             dto.setStartDate(t.getStartDate());
             dto.setEndDate(t.getEndDate());
             out.add(dto);

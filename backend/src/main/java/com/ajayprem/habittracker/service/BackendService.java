@@ -3,10 +3,7 @@ package com.ajayprem.habittracker.service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,21 +16,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ajayprem.habittracker.dto.ChallengeDto;
 import com.ajayprem.habittracker.dto.PenaltyDto;
-import com.ajayprem.habittracker.dto.UserProfileDto;
 import com.ajayprem.habittracker.model.AuthToken;
 import com.ajayprem.habittracker.model.Challenge;
 import com.ajayprem.habittracker.model.ChallengeParticipant;
-import com.ajayprem.habittracker.model.FriendRequest;
-import com.ajayprem.habittracker.model.FriendRequestKey;
 import com.ajayprem.habittracker.model.Penalty;
 import com.ajayprem.habittracker.model.User;
 import com.ajayprem.habittracker.repository.AuthTokenRepository;
 import com.ajayprem.habittracker.repository.ChallengeParticipantRepository;
 import com.ajayprem.habittracker.repository.ChallengeRepository;
-import com.ajayprem.habittracker.repository.FriendRequestRepository;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
-import com.ajayprem.habittracker.util.CurrentUser;
 
 @Service
 @Transactional
@@ -55,7 +47,6 @@ public class BackendService {
 
     @Autowired
     private PenaltyRepository penaltyRepository;
-
 
     // --- Challenges ---
     public List<Challenge> getChallengesEntities(Long userId) {

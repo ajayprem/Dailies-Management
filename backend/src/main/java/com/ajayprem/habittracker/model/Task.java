@@ -35,11 +35,7 @@ public class Task {
     private double penaltyAmount;
 
     @ManyToMany
-    @JoinTable(
-            name = "task_penalty_recipients",
-            joinColumns = @JoinColumn(name = "task_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
+    @JoinTable(name = "task_penalty_recipients", joinColumns = @JoinColumn(name = "task_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
     private List<User> penaltyRecipients = new ArrayList<>();
 
     private String status;
@@ -50,7 +46,6 @@ public class Task {
     private List<String> completedDates = new ArrayList<>();
 
     private String createdAt;
-    private String nextDueDate;
 
     private String startDate;
     private String endDate;

@@ -26,7 +26,11 @@ export function TaskCard({
   const shouldHighlight = highlightCompleted && isCompletedToday;
 
   return (
-    <Card className={shouldHighlight ? "bg-green-50 border-green-200" : ""}>
+    <Card
+      className={`flex flex-col ${
+        shouldHighlight ? "bg-green-50 border-green-200" : ""
+      }`}
+    >
       <CardHeader>
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -66,9 +70,9 @@ export function TaskCard({
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {task.penaltyAmount != 0 && (
+      <CardContent className="flex-1 flex flex-col">
+        <div className="space-y-3 flex-1">
+          {task.penaltyAmount != 0 ? (
             <>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -81,6 +85,11 @@ export function TaskCard({
                 </div>
               )}
             </>
+          ) : (
+            <div className="text-sm text-gray-600 flex items-center gap-2">
+              <User className="w-4 h-4 text-blue-500" />
+              <span>Personal task - no penalty</span>
+            </div>
           )}
           {showCompletedCount && (
             <div className="text-sm text-gray-600">
@@ -99,7 +108,7 @@ export function TaskCard({
               )}
             </div>
           )}
-          {actionButton}
+          {actionButton && <div className="mt-3">{actionButton}</div>}
         </div>
       </CardContent>
     </Card>

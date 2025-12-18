@@ -147,10 +147,6 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Next Due Date:</span>
-                <span>{task.nextDueDate || "N/A"}</span>
-              </div>
-              <div className="flex justify-between items-center">
                 <span className="text-gray-600">Status:</span>
                 <Badge
                   variant={task.status === "active" ? "default" : "secondary"}
@@ -168,7 +164,7 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
           />
 
           {/* Performance Insights */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Performance Insights</CardTitle>
             </CardHeader>
@@ -197,7 +193,7 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
                 <p className="text-gray-600">💪 Time to start a new streak!</p>
               )}
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </DialogContent>
     </Dialog>

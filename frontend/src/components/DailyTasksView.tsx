@@ -58,22 +58,7 @@ export function DailyTasksView({ tasks, onTaskUpdate }: DailyTasksViewProps) {
         if (date > endDate) return false;
       }
 
-      // Filter by period
-      if (task.period === "daily") {
-        return true;
-      } else if (task.period === "weekly") {
-        // For weekly tasks, show on the same day of week as creation
-        const createdDate = new Date(task.createdAt || task.startDate);
-        const createdDayOfWeek = createdDate.getDay();
-        return dayOfWeek === createdDayOfWeek;
-      } else if (task.period === "monthly") {
-        // For monthly tasks, show on the same day of month as creation
-        const createdDate = new Date(task.createdAt || task.startDate);
-        const createdDayOfMonth = createdDate.getDate();
-        return dayOfMonth === createdDayOfMonth;
-      }
-
-      return false;
+      return true;
     });
 
     setTasksForDay(filtered);
