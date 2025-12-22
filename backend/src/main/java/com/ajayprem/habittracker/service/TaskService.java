@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import com.ajayprem.habittracker.dto.TaskDto;
 import com.ajayprem.habittracker.dto.UserDto;
+import com.ajayprem.habittracker.model.Challenge;
 import com.ajayprem.habittracker.model.Penalty;
 import com.ajayprem.habittracker.model.Task;
 import com.ajayprem.habittracker.model.User;
@@ -83,11 +86,26 @@ public class TaskService {
             }
         }
 
-        // Add date if not present
-        if (!t.getCompletedDates().contains(dateStr)) {
-            t.getCompletedDates().add(dateStr);
+        // compute canonical key for the task's period (daily/weekly/monthly)
+        String key = periodKeyFor(date, t.getPeriod());
+        // Add canonical key if not present
+        if (!t.getCompletedDates().contains(key)) {
+            t.getCompletedDates().add(key);
             taskRepository.save(t);
-            log.info("completeTaskForDate: added completion date {} for task {}", dateStr, tid);
+            log.info("completeTaskForDate: added completion key {} for task {} (period={})", key, tid,
+                    t.getPeriod());
+            // remove any penalties for this task+period (if scheduled job created them)
+            try {
+                List<Penalty> existing = penaltyRepository.findByTaskIdAndPeriodKey(t.getId(), key);
+                for (Penalty p : existing) {
+                    penaltyRepository.delete(p);
+                    log.info("completeTaskForDate: removed penalty id={} for task {} periodKey={}", p.getId(), tid,
+                            key);
+                }
+            } catch (Exception e) {
+                log.warn("completeTaskForDate: failed to remove penalties for task {} period {}: {}", tid, key,
+                        e.getMessage());
+            }
         }
         return true;
     }
@@ -104,36 +122,42 @@ public class TaskService {
         if (!Objects.equals(t.getUser().getId(), uid)) {
             return false;
         }
-        if (t.getCompletedDates().contains(dateStr)) {
-            t.getCompletedDates().remove(dateStr);
+        // remove canonical key depending on period
+        String key = null;
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            key = periodKeyFor(date, t.getPeriod());
+        } catch (Exception e) {
+            // parsing failed - nothing to remove
+        }
+
+        if (key != null && t.getCompletedDates().contains(key)) {
+            t.getCompletedDates().remove(key);
             taskRepository.save(t);
-            log.info("uncompleteTaskForDate: removed date {} for task {}", dateStr, tid);
+            log.info("uncompleteTaskForDate: removed key {} for task {} (period={})", key, tid, t.getPeriod());
             return true;
         }
 
         return false;
     }
 
-    public boolean uncompleteTask(Long uid, String taskIdStr) {
-        log.info("uncompleteTask: uid={} taskId={}", uid, taskIdStr);
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            log.warn("uncompleteTask: task not found {}", tid);
-            return false;
+    private String periodKeyFor(LocalDate date, String period) {
+        if (date == null)
+            return null;
+        String p = period == null ? "daily" : period.toLowerCase();
+        switch (p) {
+            case "weekly": {
+                LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                return weekStart.toString();
+            }
+            case "monthly": {
+                LocalDate monthStart = date.withDayOfMonth(1);
+                return monthStart.toString();
+            }
+            default:
+                return date.toString();
         }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return false;
-        }
-        String today = LocalDate.now().toString();
-        if (t.getCompletedDates().contains(today)) {
-            t.getCompletedDates().remove(today);
-            taskRepository.save(t);
-            log.info("uncompleteTask: removed today's completion for task {}", tid);
-            return true;
-        }
-        return false;
+
     }
 
     public Map<String, Object> getTaskStats(Long uid, String taskIdStr) {
@@ -155,7 +179,7 @@ public class TaskService {
 
         int currentStreak = calcCurrentStreak(completedDates, t.getPeriod());
 
-        int longestStreak = calcLongestStreak(completedDates);
+        int longestStreak = calcLongestStreak(completedDates, t.getPeriod());
 
         double completionRate = calcCompletionRate(t, completedDates);
 
@@ -231,7 +255,8 @@ public class TaskService {
                 }
                 if (months.isEmpty())
                     return 0;
-                List<LocalDate> sorted = months.stream().sorted(Collections.reverseOrder()).collect(Collectors.toList());
+                List<LocalDate> sorted = months.stream().sorted(Collections.reverseOrder())
+                        .collect(Collectors.toList());
                 int streak = 0;
                 LocalDate todayMonthStart = LocalDate.now().withDayOfMonth(1);
                 for (LocalDate m : sorted) {
@@ -261,22 +286,84 @@ public class TaskService {
         }
     }
 
-    private int calcLongestStreak(List<String> completedDates) {
+    private int calcLongestStreak(List<String> completedDates, String period) {
         if (completedDates == null || completedDates.isEmpty()) {
             return 0;
         }
-        List<LocalDate> dates = completedDates.stream().map(LocalDate::parse).sorted().toList();
-        int longest = 0, current = 1;
-        for (int i = 1; i < dates.size(); i++) {
-            if (dates.get(i).equals(dates.get(i - 1).plusDays(1))) {
-                current++;
-            } else {
+
+        String p = period == null ? "daily" : period.toLowerCase();
+
+        switch (p) {
+            case "weekly" -> {
+                // map to unique week-starts
+                Set<LocalDate> weeks = new HashSet<>();
+                for (String s : completedDates) {
+                    LocalDate d = parseToLocalDate(s);
+                    if (d == null)
+                        continue;
+                    LocalDate weekStart = d
+                            .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                    weeks.add(weekStart);
+                }
+                if (weeks.isEmpty())
+                    return 0;
+                List<LocalDate> sorted = weeks.stream().sorted().collect(Collectors.toList());
+                int longest = 0, current = 1;
+                for (int i = 1; i < sorted.size(); i++) {
+                    if (sorted.get(i).equals(sorted.get(i - 1).plusWeeks(1))) {
+                        current++;
+                    } else {
+                        longest = Math.max(longest, current);
+                        current = 1;
+                    }
+                }
                 longest = Math.max(longest, current);
-                current = 1;
+                return longest;
+            }
+            case "monthly" -> {
+                // map to unique month-starts
+                Set<LocalDate> months = new HashSet<>();
+                for (String s : completedDates) {
+                    LocalDate d = parseToLocalDate(s);
+                    if (d == null)
+                        continue;
+                    LocalDate monthStart = d.withDayOfMonth(1);
+                    months.add(monthStart);
+                }
+                if (months.isEmpty())
+                    return 0;
+                List<LocalDate> sorted = months.stream().sorted().collect(Collectors.toList());
+                int longest = 0, current = 1;
+                for (int i = 1; i < sorted.size(); i++) {
+                    if (sorted.get(i).equals(sorted.get(i - 1).plusMonths(1))) {
+                        current++;
+                    } else {
+                        longest = Math.max(longest, current);
+                        current = 1;
+                    }
+                }
+                longest = Math.max(longest, current);
+                return longest;
+            }
+            default -> {
+                // daily
+                List<LocalDate> dates = completedDates.stream().map(this::parseToLocalDate).filter(Objects::nonNull)
+                        .sorted().collect(Collectors.toList());
+                if (dates.isEmpty())
+                    return 0;
+                int longest = 0, current = 1;
+                for (int i = 1; i < dates.size(); i++) {
+                    if (dates.get(i).equals(dates.get(i - 1).plusDays(1))) {
+                        current++;
+                    } else {
+                        longest = Math.max(longest, current);
+                        current = 1;
+                    }
+                }
+                longest = Math.max(longest, current);
+                return longest;
             }
         }
-        longest = Math.max(longest, current);
-        return longest;
     }
 
     private double calcCompletionRate(Task t, List<String> completedDates) {
@@ -352,27 +439,6 @@ public class TaskService {
         return input;
     }
 
-    public boolean completeTask(Long uid, String taskIdStr) {
-        log.info("completeTask: uid={} taskId={}", uid, taskIdStr);
-        Long tid = Long.parseLong(taskIdStr);
-        Optional<Task> ot = taskRepository.findById(tid);
-        if (ot.isEmpty()) {
-            log.warn("completeTask: task not found {}", tid);
-            return false;
-        }
-        Task t = ot.get();
-        if (!Objects.equals(t.getUser().getId(), uid)) {
-            return false;
-        }
-        String today = LocalDate.now().toString();
-        if (!t.getCompletedDates().contains(today)) {
-            t.getCompletedDates().add(today);
-        }
-        taskRepository.save(t);
-        log.info("completeTask: task {} marked complete for user {}", tid, uid);
-        return true;
-    }
-
     public Map<String, Object> applyTaskPenalty(Long uid, String taskIdStr) {
         log.info("applyTaskPenalty: uid={} taskId={}", uid, taskIdStr);
         Long tid = Long.parseLong(taskIdStr);
@@ -446,5 +512,29 @@ public class TaskService {
         }
         return out;
     }
+
+    // public Map<String, Object> applyTaskPenalty(Long uid, String challengeIdStr,
+    // String failedUserIdStr) {
+    // log.info("applyChallengePenalty: uid={} challengeId={} failedUserId={}", uid,
+    // challengeIdStr, failedUserIdStr);
+    // Long cid = Long.parseLong(challengeIdStr);
+    // Optional<Challenge> oc = challengeRepository.findById(cid);
+    // if (oc.isEmpty()) {
+    // log.warn("applyChallengePenalty: challenge not found: {}", cid);
+    // return null;
+    // }
+    // Challenge c = oc.get();
+    // Penalty p = new Penalty();
+    // p.setType("challenge");
+    // userRepository.findById(Long.parseLong(failedUserIdStr)).ifPresent(p::setFromUser);
+    // p.setToUser(c.getCreator());
+    // p.setAmount(c.getPenaltyAmount());
+    // p.setReason("Failed challenge: " + c.getTitle());
+    // p.setCreatedAt(Instant.now().toString());
+    // penaltyRepository.save(p);
+    // log.info("applyChallengePenalty: penalty created id={} amount={}", p.getId(),
+    // p.getAmount());
+    // return Map.of("success", true, "penaltyId", String.valueOf(p.getId()));
+    // }
 
 }

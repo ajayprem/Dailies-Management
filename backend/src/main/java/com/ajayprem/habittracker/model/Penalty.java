@@ -24,6 +24,10 @@ public class Penalty {
     private Task task;
 
     @ManyToOne
+    @JoinColumn(name = "challenge_id")
+    private Challenge challenge;
+
+    @ManyToOne
     @JoinColumn(name = "from_user_id")
     private User fromUser;
 
@@ -34,4 +38,5 @@ public class Penalty {
     private double amount;
     private String reason;
     private String createdAt;
+    private String periodKey;
 }

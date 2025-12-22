@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.PenaltyDto;
-import com.ajayprem.habittracker.service.BackendService;
+import com.ajayprem.habittracker.service.PenaltyService;
 import com.ajayprem.habittracker.util.CurrentUser;
 
 @RestController
@@ -23,13 +23,15 @@ public class PenaltiesController {
     private static final Logger log = LoggerFactory.getLogger(PenaltiesController.class);
 
     @Autowired
-    private BackendService svc;
+    private PenaltyService svc;
 
     @GetMapping("")
-    public ResponseEntity<?> getPenalties(@RequestHeader(value = "Authorization", required = false) String authorization) {
+    public ResponseEntity<?> getPenalties(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         Long userId = CurrentUser.id();
         log.info("PenaltiesController: getPenalties userId={}", userId);
-        if (userId == null) return ResponseEntity.status(401).body(Map.of("error","unauthorized"));
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
         List<PenaltyDto> list = svc.getPenalties(userId);
         return ResponseEntity.ok(Map.of("penalties", list));
     }

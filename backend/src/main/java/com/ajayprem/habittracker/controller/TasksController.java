@@ -80,18 +80,6 @@ public class TasksController {
         return ResponseEntity.ok(Map.of("task", created));
     }
 
-    @PostMapping("/{taskId}/complete")
-    public ResponseEntity<?> complete(
-            @PathVariable String taskId) {
-
-        Long userId = CurrentUser.id();
-        if (userId == null)
-            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        log.info("TasksController: complete userId={} taskId={}", userId, taskId);
-        boolean ok = taskService.completeTask(userId, taskId);
-        return ResponseEntity.ok(Map.of("success", ok));
-    }
-
     @PostMapping("/{taskId}/penalty")
     public ResponseEntity<?> penalty(
             @PathVariable String taskId) {
@@ -104,18 +92,6 @@ public class TasksController {
         if (resp == null)
             return ResponseEntity.badRequest().body(Map.of("success", false));
         return ResponseEntity.ok(resp);
-    }
-
-    @PostMapping("/{taskId}/uncomplete")
-    public ResponseEntity<?> uncomplete(
-            @PathVariable String taskId) {
-
-        Long userId = CurrentUser.id();
-        if (userId == null)
-            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        log.info("TasksController: uncomplete userId={} taskId={}", userId, taskId);
-        boolean ok = taskService.uncompleteTask(userId, taskId);
-        return ResponseEntity.ok(Map.of("success", ok));
     }
 
     @GetMapping("/{taskId}/stats")

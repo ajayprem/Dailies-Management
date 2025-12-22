@@ -65,7 +65,30 @@ export function DailyTasksView({ tasks, onTaskUpdate }: DailyTasksViewProps) {
   };
 
   const isTaskCompletedOnDate = (task: any, dateStr: string) => {
-    return task.completedDates?.includes(dateStr) || false;
+    const list = task.completedDates || [];
+    const period = task.period || "daily";
+    // daily -> dateStr directly
+    if (period === "daily") return list.includes(dateStr);
+
+    const date = new Date(dateStr);
+    // weekly: check week-start key (Monday) or fallback to dateStr
+    if (period === "weekly") {
+      const day = date.getDay(); // 0=Sun,1=Mon
+      const diffToMonday = (day + 6) % 7; // days since Monday
+      const monday = new Date(date);
+      monday.setDate(date.getDate() - diffToMonday);
+      const weekKey = monday.toISOString().split("T")[0];
+      return list.includes(weekKey) || list.includes(dateStr);
+    }
+
+    // monthly: check month-start key (YYYY-MM-01) or fallback to dateStr
+    if (period === "monthly") {
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthKey = monthStart.toISOString().split("T")[0];
+      return list.includes(monthKey) || list.includes(dateStr);
+    }
+
+    return list.includes(dateStr);
   };
 
   const handleToggleCompletion = async (task: any, dateStr: string) => {
