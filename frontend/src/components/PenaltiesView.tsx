@@ -1,8 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { DollarSign, TrendingUp, TrendingDown, IndianRupee } from 'lucide-react';
-import { Badge } from './ui/badge';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  IndianRupee,
+} from "lucide-react";
+import { Badge } from "./ui/badge";
+import { API_ENDPOINTS, apiCall } from "../config/api";
 
 interface PenaltiesViewProps {
   accessToken: string;
@@ -22,7 +33,7 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
       const data = await apiCall(API_ENDPOINTS.getPenalties);
       setPenalties(data.penalties || []);
     } catch (error) {
-      console.error('Error fetching penalties:', error);
+      console.error("Error fetching penalties:", error);
     } finally {
       setLoading(false);
     }
@@ -50,7 +61,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
     <div className="space-y-6">
       <div>
         <h2>Penalties</h2>
-        <p className="text-gray-600 mt-1">Track penalties from incomplete tasks and challenges</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Track penalties from incomplete tasks and challenges
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -64,7 +77,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-3xl">₹{owed.toFixed(2)}</div>
-            <p className="text-sm text-gray-600 mt-1">From incomplete tasks</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              From incomplete tasks
+            </p>
           </CardContent>
         </Card>
 
@@ -77,7 +92,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-3xl">₹{receiving.toFixed(2)}</div>
-            <p className="text-sm text-gray-600 mt-1">From friends' penalties</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              From friends' penalties
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -87,7 +104,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
         <CardHeader>
           <CardTitle>All Penalties</CardTitle>
           <CardDescription>
-            {penalties.length === 0 ? 'No penalties recorded yet' : `${penalties.length} penalty record(s)`}
+            {penalties.length === 0
+              ? "No penalties recorded yet"
+              : `${penalties.length} penalty record(s)`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,22 +123,30 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
                   <div
                     key={penalty.id}
                     className={`p-4 rounded-lg border ${
-                      isOwed ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
+                      isOwed
+                        ? "bg-red-50 border-red-200"
+                        : "bg-green-50 border-green-200"
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge variant={isOwed ? 'destructive' : 'default'}>
-                            {isOwed ? 'You Owe' : 'You Receive'}
+                          <Badge variant={isOwed ? "destructive" : "default"}>
+                            {isOwed ? "You Owe" : "You Receive"}
                           </Badge>
-                          <span className="text-sm text-gray-600">
-                            {penalty.type === 'task' ? 'Task Penalty' : 'Challenge Penalty'}
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {penalty.type === "task"
+                              ? "Task Penalty"
+                              : "Challenge Penalty"}
                           </span>
                         </div>
                         <p className="text-sm">{penalty.reason}</p>
                       </div>
-                      <div className={`text-xl ${isOwed ? 'text-red-600' : 'text-green-600'}`}>
+                      <div
+                        className={`text-xl ${
+                          isOwed ? "text-red-600" : "text-green-600"
+                        }`}
+                      >
                         ₹{penalty.amount.toFixed(2)}
                       </div>
                     </div>

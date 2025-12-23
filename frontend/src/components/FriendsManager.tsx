@@ -137,7 +137,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
     <div className="space-y-6">
       <div>
         <h2>Friends</h2>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Manage your friends and friend requests
         </p>
       </div>
@@ -160,7 +160,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                 >
                   <div>
                     <p>{request.fromUser.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {request.fromUser.email}
                     </p>
                   </div>
@@ -172,7 +172,11 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                       <Check className="w-4 h-4 mr-1" />
                       Accept
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDeclineRequest(request.fromUser.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeclineRequest(request.fromUser.id)}
+                    >
                       <X className="w-4 h-4 mr-1" />
                       Decline
                     </Button>
@@ -198,11 +202,13 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
               {sentRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:text-gray-400 dark:bg-gray-800"
                 >
                   <div>
                     <p>{request.name}</p>
-                    <p className="text-sm text-gray-600">{request.email}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {request.email}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -240,7 +246,9 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                   >
                     <div>
                       <p>{user.name}</p>
-                      <p className="text-sm text-gray-600">{user.email}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 dark:bg-gray-800">
+                        {user.email}
+                      </p>
                     </div>
                     <Button
                       size="sm"
@@ -274,9 +282,12 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
               <p>Add friends to create challenges and share penalties</p>
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2 ">
               {friends.map((friend) => (
-                <div key={friend.id} className="p-4 bg-gray-50 rounded-lg">
+                <div
+                  key={friend.id}
+                  className="p-4 bg-gray-50 rounded-lg dark:text-gray-400 dark:bg-gray-800"
+                >
                   <p>{friend.name}</p>
                   <p className="text-sm text-gray-600">{friend.email}</p>
                 </div>

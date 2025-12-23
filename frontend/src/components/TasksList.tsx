@@ -148,7 +148,7 @@ export function TasksList() {
       <div className="flex justify-between items-center">
         <div>
           <h2>My Tasks</h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage your daily, weekly, and monthly tasks
           </p>
         </div>
@@ -227,7 +227,7 @@ export function TasksList() {
                   </Select>
                 </div>
 
-                <div className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50">
+                <div className="flex items-center space-x-2 p-3 border rounded-md bg-gray-50 dark:bg-gray-800">
                   <Checkbox
                     id="personal"
                     checked={isPersonalTask}

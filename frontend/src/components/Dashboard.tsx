@@ -1,40 +1,70 @@
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { TasksList } from './TasksList';
-import { ChallengesList } from './ChallengesList';
-import { FriendsManager } from './FriendsManager';
-import { PenaltiesView } from './PenaltiesView';
-import { Button } from './ui/button';
-import { LogOut, Users, ListTodo, Target, DollarSign, IndianRupee } from 'lucide-react';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { TasksList } from "./TasksList";
+import { ChallengesList } from "./ChallengesList";
+import { FriendsManager } from "./FriendsManager";
+import { PenaltiesView } from "./PenaltiesView";
+import { Button } from "./ui/button";
+import {
+  LogOut,
+  Users,
+  ListTodo,
+  Target,
+  IndianRupee,
+  Moon,
+  Sun,
+} from "lucide-react";
+import { API_ENDPOINTS, apiCall } from "../config/api";
 
 interface DashboardProps {
   accessToken: string;
   userProfile: any;
   userId: string;
   onLogout: () => void;
+  darkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
-export function Dashboard({ accessToken, userId, userProfile, onLogout }: DashboardProps) {
-
+export function Dashboard({
+  accessToken,
+  userProfile,
+  userId,
+  onLogout,
+  darkMode,
+  toggleDarkMode,
+}: DashboardProps) {
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userId');
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userId");
     onLogout();
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-indigo-950">
       <div className="max-w-7xl mx-auto p-4 md:p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-indigo-600">Done Dailies</h1>
-            <p className="text-gray-600 mt-1">Welcome back, {userProfile?.name || 'User'}!</p>
+            <h1 className="text-indigo-600 dark:text-indigo-400">
+              Done Dailies
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Welcome back, {userProfile?.name || "User"}!
+            </p>
           </div>
-          <Button onClick={handleLogout} variant="outline" size="sm">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={toggleDarkMode} variant="outline" size="sm">
+              {darkMode ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+              <span className="sr-only">Toggle dark mode</span>
+            </Button>
+            <Button onClick={handleLogout} variant="outline" size="sm">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="tasks" className="space-y-6">

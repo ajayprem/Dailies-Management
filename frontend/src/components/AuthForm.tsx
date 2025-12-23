@@ -127,7 +127,6 @@ export function AuthForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="••••••••"
                 />
               </div>
               {error && (

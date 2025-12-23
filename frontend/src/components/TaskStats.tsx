@@ -122,11 +122,15 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Description:</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Description:
+                </span>
                 <span>{task.description || "No description"}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Period:</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Period:
+                </span>
                 <Badge
                   variant={
                     task.period === "daily"
@@ -140,14 +144,18 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
                 </Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Penalty Amount:</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Penalty Amount:
+                </span>
                 <span className="flex items-center gap-1">
                   <AlertTriangle className="w-4 h-4 text-orange-500" />$
                   {task.penaltyAmount}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Status:</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Status:
+                </span>
                 <Badge
                   variant={task.status === "active" ? "default" : "secondary"}
                 >
@@ -190,7 +198,7 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
               )}
 
               {stats.currentStreak === 0 && stats.totalCompletions > 0 && (
-                <p className="text-gray-600">💪 Time to start a new streak!</p>
+                <p className="text-gray-600 dark:text-gray-400">💪 Time to start a new streak!</p>
               )}
             </CardContent>
           </Card> */}
