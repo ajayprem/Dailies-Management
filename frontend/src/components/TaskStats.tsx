@@ -40,6 +40,14 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
     penaltyAmount: 0,
   });
 
+  const unitFor = (period: string | undefined, value: number) => {
+    const p = period === undefined || period === null ? "daily" : period;
+    const singular =
+      p === "weekly" ? "week" : p === "monthly" ? "month" : "day";
+    const plural = singular + "s";
+    return value === 1 ? singular : plural;
+  };
+
   const fetchTaskStats = async (taskId: string) => {
     try {
       const data = await apiCall(API_ENDPOINTS.getTaskStats(taskId));
@@ -91,12 +99,14 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
                 <CardDescription>Current Streak</CardDescription>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-green-500" />
-                  {stats.currentStreak} days
+                  {stats.currentStreak}{" "}
+                  {unitFor(task?.period, stats.currentStreak)}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500">
-                  Longest: {stats.longestStreak} days
+                  Longest: {stats.longestStreak}{" "}
+                  {unitFor(task?.period, stats.longestStreak)}
                 </p>
               </CardContent>
             </Card>
@@ -169,6 +179,7 @@ export function TaskStats({ task, open, onOpenChange }: TaskStatsProps) {
           <TaskCalendar
             completedDates={task.completedDates || []}
             taskTitle={task.title}
+            period={task?.period}
           />
 
           {/* Performance Insights */}

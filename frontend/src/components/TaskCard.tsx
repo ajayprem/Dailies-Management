@@ -57,9 +57,6 @@ export function TaskCard({
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription className="mt-1">
-              {task.description}
-            </CardDescription>
           </div>
           <Badge
             variant={
@@ -91,7 +88,7 @@ export function TaskCard({
             </>
           ) : (
             <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
-              <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+              <User className="w-4 h-12 text-blue-500 dark:text-blue-400" />
               <span>Personal task - no penalty</span>
             </div>
           )}

@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 
 import com.ajayprem.habittracker.dto.TaskDto;
 import com.ajayprem.habittracker.dto.UserDto;
-import com.ajayprem.habittracker.model.Challenge;
 import com.ajayprem.habittracker.model.Penalty;
 import com.ajayprem.habittracker.model.Task;
 import com.ajayprem.habittracker.model.User;

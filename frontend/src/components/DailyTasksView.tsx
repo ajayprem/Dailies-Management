@@ -83,8 +83,9 @@ export function DailyTasksView({ tasks, onTaskUpdate }: DailyTasksViewProps) {
 
     // monthly: check month-start key (YYYY-MM-01) or fallback to dateStr
     if (period === "monthly") {
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthKey = monthStart.toISOString().split("T")[0];
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const monthKey = `${year}-${month}-01`;
       return list.includes(monthKey) || list.includes(dateStr);
     }
 
