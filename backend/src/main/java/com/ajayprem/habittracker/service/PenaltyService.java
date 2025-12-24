@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import com.ajayprem.habittracker.dto.PenaltyDto;
@@ -62,6 +63,7 @@ public class PenaltyService {
      * - monthly: apply when today is 1st of month (so previous month just finished)
      */
     @Scheduled(cron = "0 5 0 * * *") // run daily at 00:05
+    @Transactional
     public void applyMissedTaskPenalties() {
         log.info("applyMissedTaskPenalties: start");
         LocalDate today = LocalDate.now();
@@ -75,30 +77,33 @@ public class PenaltyService {
 
                 String period = t.getPeriod() == null ? "daily" : t.getPeriod().toLowerCase();
 
-                if ("daily".equals(period)) {
-                    LocalDate periodDate = yesterday; // check yesterday
-                    String key = periodDate.toString();
-                    if (t.getCompletedDates().contains(key))
-                        continue;
-                    applyPenaltiesForTaskPeriod(t, key);
-                } else if ("weekly".equals(period)) {
-                    // run only when yesterday was Sunday (week ended)
-                    if (yesterday.getDayOfWeek() != DayOfWeek.SUNDAY)
-                        continue;
-                    LocalDate weekStart = yesterday.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-                    String key = weekStart.toString();
-                    if (t.getCompletedDates().contains(key))
-                        continue;
-                    applyPenaltiesForTaskPeriod(t, key);
-                } else if ("monthly".equals(period)) {
-                    // run only when today is 1st of month
-                    if (today.getDayOfMonth() != 1)
-                        continue;
-                    LocalDate monthStart = today.minusMonths(1).withDayOfMonth(1);
-                    String key = monthStart.toString();
-                    if (t.getCompletedDates().contains(key))
-                        continue;
-                    applyPenaltiesForTaskPeriod(t, key);
+                switch (period) {
+                    case "daily" -> {
+                        String key = yesterday.toString();
+                        if (t.getCompletedDates().contains(key))
+                            continue;
+                        applyPenaltiesForTaskPeriod(t, key);
+                    }
+                    case "weekly" -> {
+                        // run only when yesterday was Sunday (week ended)
+                        if (yesterday.getDayOfWeek() != DayOfWeek.SUNDAY)
+                            continue;
+                        LocalDate weekStart = yesterday.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                        String key = weekStart.toString();
+                        if (t.getCompletedDates().contains(key))
+                            continue;
+                        applyPenaltiesForTaskPeriod(t, key);
+                    }
+                    case "monthly" -> {
+                        // run only when today is 1st of month
+                        if (today.getDayOfMonth() != 1)
+                            continue;
+                        LocalDate monthStart = today.minusMonths(1).withDayOfMonth(1);
+                        String key = monthStart.toString();
+                        if (t.getCompletedDates().contains(key))
+                            continue;
+                        applyPenaltiesForTaskPeriod(t, key);
+                    }
                 }
             } catch (Exception e) {
                 log.warn("applyMissedTaskPenalties: failed for task id={} reason={}", t.getId(), e.getMessage());
@@ -111,9 +116,7 @@ public class PenaltyService {
     private void applyPenaltiesForTaskPeriod(Task t, String periodKey) {
         if (t.getPenaltyRecipients() == null || t.getPenaltyRecipients().isEmpty())
             return;
-        int numRecipients = t.getPenaltyRecipients().size();
-        double splitAmount = t.getPenaltyAmount() / (double) numRecipients;
-        for (User recipient : t.getPenaltyRecipients()) {
+        for (User recipient : t.getPenaltyRecipients())
             try {
                 // avoid duplicates per recipient
                 if (penaltyRepository.existsByTaskIdAndPeriodKeyAndToUserId(t.getId(), periodKey,
@@ -125,7 +128,7 @@ public class PenaltyService {
                 p.setTask(t);
                 p.setFromUser(t.getUser());
                 p.setToUser(recipient);
-                p.setAmount(splitAmount);
+                p.setAmount(t.getPenaltyAmount());
                 p.setReason("Missed task: " + t.getTitle());
                 p.setCreatedAt(Instant.now().toString());
                 p.setPeriodKey(periodKey);
@@ -136,6 +139,5 @@ public class PenaltyService {
                 log.warn("applyMissedTaskPenalties: failed to create penalty for task {} recipient {}: {}",
                         t.getId(), recipient == null ? null : recipient.getId(), e.getMessage());
             }
-        }
     }
 }
