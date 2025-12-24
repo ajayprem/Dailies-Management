@@ -370,12 +370,12 @@ public class TaskService {
             return 0.0;
         }
         LocalDate created;
-        String createdAt = t.getCreatedAt();
+        String startDate = t.getStartDate();
         try {
-            created = LocalDate.parse(createdAt);
+            created = LocalDate.parse(startDate);
         } catch (DateTimeParseException ex) {
             try {
-                Instant inst = Instant.parse(createdAt);
+                Instant inst = Instant.parse(startDate);
                 created = inst.atZone(ZoneId.systemDefault()).toLocalDate();
             } catch (Exception e) {
                 created = LocalDate.now();
