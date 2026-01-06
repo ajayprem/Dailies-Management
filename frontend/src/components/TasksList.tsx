@@ -32,6 +32,7 @@ import {
   BarChart3,
   User,
   List,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Checkbox } from "./ui/checkbox";
@@ -137,6 +138,28 @@ export function TasksList() {
   const handleViewStats = (task: any) => {
     setStatsTask(task);
     setStatsDialogOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${taskTitle}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await apiCall(API_ENDPOINTS.deleteTask(taskId), {
+        method: "DELETE",
+      });
+
+      toast.success("Task deleted successfully!");
+      fetchTasks();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Failed to delete task");
+    }
   };
 
   if (loading) {
@@ -405,6 +428,16 @@ export function TasksList() {
                       >
                         <BarChart3 className="w-4 h-4 mr-2" />
                         View Stats & Calendar
+                      </Button>
+                    }
+                    deleteButton={
+                      <Button
+                        onClick={() => handleDeleteTask(task.id, task.title)}
+                        className="w-full"
+                        variant="destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Task
                       </Button>
                     }
                   />

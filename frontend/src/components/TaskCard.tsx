@@ -11,6 +11,7 @@ import { CheckCircle, AlertTriangle, User } from "lucide-react";
 interface TaskCardProps {
   task: any;
   actionButton?: React.ReactNode;
+  deleteButton?: React.ReactNode;
   showCompletedCount?: boolean;
   isCompletedToday?: boolean;
   highlightCompleted?: boolean;
@@ -19,6 +20,7 @@ interface TaskCardProps {
 export function TaskCard({
   task,
   actionButton,
+  deleteButton,
   showCompletedCount = false,
   isCompletedToday = false,
   highlightCompleted = false,
@@ -73,7 +75,7 @@ export function TaskCard({
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <div className="space-y-3 flex-1">
-          {task.penaltyAmount != 0 ? (
+          {task.penaltyAmount ? (
             <>
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <AlertTriangle className="w-4 h-4 text-orange-500 dark:text-orange-400" />
@@ -109,8 +111,9 @@ export function TaskCard({
               )}
             </div>
           )}
-          {actionButton && <div className="mt-3">{actionButton}</div>}
         </div>
+        {actionButton && <div className="mt-3">{actionButton}</div>}
+        {deleteButton && <div className="mt-3">{deleteButton}</div>}
       </CardContent>
     </Card>
   );

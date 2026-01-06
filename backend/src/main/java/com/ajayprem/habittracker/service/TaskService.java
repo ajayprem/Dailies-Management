@@ -1,19 +1,19 @@
 package com.ajayprem.habittracker.service;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
-import java.time.DayOfWeek;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -474,6 +474,58 @@ public class TaskService {
         }
 
         return Map.of("success", !penaltyIds.isEmpty(), "penaltyIds", penaltyIds);
+    }
+
+    /**
+     * Delete a task and its related information (penalties and penalty-recipient links).
+     * Returns true if deletion was successful.
+     */
+    public boolean deleteTask(Long uid, String taskIdStr) {
+        log.info("deleteTask: uid={} taskId={}", uid, taskIdStr);
+        Long tid;
+        try {
+            tid = Long.parseLong(taskIdStr);
+        } catch (Exception e) {
+            log.warn("deleteTask: invalid task id {}", taskIdStr);
+            return false;
+        }
+        Optional<Task> ot = taskRepository.findById(tid);
+        if (ot.isEmpty()) {
+            log.warn("deleteTask: task not found {}", tid);
+            return false;
+        }
+        Task t = ot.get();
+        if (!Objects.equals(t.getUser().getId(), uid)) {
+            log.warn("deleteTask: user {} not owner of task {}", uid, tid);
+            return false;
+        }
+
+        try {
+            // Clear penalty recipients link to avoid orphaned join table rows (safer cleanup)
+            if (t.getPenaltyRecipients() != null && !t.getPenaltyRecipients().isEmpty()) {
+                t.getPenaltyRecipients().clear();
+                taskRepository.save(t);
+            }
+
+            // Remove any penalties associated with this task
+            try {
+                List<Penalty> existing = penaltyRepository.findByTaskId(t.getId());
+                for (Penalty p : existing) {
+                    penaltyRepository.delete(p);
+                    log.info("deleteTask: removed penalty id={} for task {}", p.getId(), tid);
+                }
+            } catch (Exception e) {
+                log.warn("deleteTask: failed to remove penalties for task {}: {}", tid, e.getMessage());
+            }
+
+            // Remove the task itself
+            taskRepository.delete(t);
+            log.info("deleteTask: deleted task {}", tid);
+            return true;
+        } catch (Exception ex) {
+            log.warn("deleteTask: failed to delete task {}: {}", tid, ex.getMessage());
+            return false;
+        }
     }
 
     // --- Tasks ---

@@ -16,4 +16,6 @@ public interface PenaltyRepository extends JpaRepository<Penalty, Long> {
     boolean existsByTaskIdAndPeriodKeyAndToUserId(Long taskId, String periodKey, Long toUserId);
 
     List<Penalty> findByTaskIdAndPeriodKey(Long taskId, String periodKey);
+
+    List<Penalty> findByTaskId(Long taskId);
 }

@@ -7,16 +7,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PostMapping; // Todo
+import org.springframework.web.bind.annotation.RequestBody; // Todo
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RestController; //
 
 import com.ajayprem.habittracker.dto.TaskDto;
 import com.ajayprem.habittracker.service.TaskService;
-import com.ajayprem.habittracker.util.CurrentUser;
+import com.ajayprem.habittracker.util.CurrentUser; 
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -80,6 +81,22 @@ public class TasksController {
         return ResponseEntity.ok(Map.of("task", created));
     }
 
+    // @PostMapping("")
+    // public ResponseEntity<?> createTask(
+    //         @RequestBody TaskDto body) {
+
+    //         Long userId = CurrentUser.id();
+    //     if (userId == null)
+    //         return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
+    //     log.info("TasksController: createTask userId={} title={}", userId, body == null ? null : body.getTitle());
+    //     TaskDto created = taskService.createTask(userId, body);
+    //     if (created == null) {
+    //         log.warn("TasksController: createTask failed for userId={}", userId);
+    //         return ResponseEntity.badRequest().body(Map.of("error", "invalid task data"));
+    //     }
+    //     return ResponseEntity.ok(Map.of("task", created));
+    // }
+
     @PostMapping("/{taskId}/penalty")
     public ResponseEntity<?> penalty(
             @PathVariable String taskId) {
@@ -104,5 +121,20 @@ public class TasksController {
         log.info("TasksController: getStats userId={} taskId={}", userId, taskId);
         Map<String, Object> stats = taskService.getTaskStats(userId, taskId);
         return ResponseEntity.ok(Map.of("stats", stats));
+    }
+
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<?> deleteTask(
+            @PathVariable String taskId) {
+
+        Long userId = CurrentUser.id();
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
+        log.info("TasksController: deleteTask userId={} taskId={}", userId, taskId);
+        boolean ok = taskService.deleteTask(userId, taskId);
+        if (!ok) {
+            return ResponseEntity.badRequest().body(Map.of("success", false));
+        }
+        return ResponseEntity.ok(Map.of("success", true));
     }
 }

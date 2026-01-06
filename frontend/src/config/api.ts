@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   // Tasks
   getTasks: `${API_BASE_URL}/tasks`,
   createTask: `${API_BASE_URL}/tasks`,
+  deleteTask: (taskId: string) => `${API_BASE_URL}/tasks/${taskId}`,
   completeTaskForDate: (taskId: string) =>
     `${API_BASE_URL}/tasks/${taskId}/complete-for-date`,
   uncompleteTaskForDate: (taskId: string) =>
