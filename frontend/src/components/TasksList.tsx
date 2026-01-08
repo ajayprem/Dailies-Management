@@ -216,7 +216,7 @@ export function TasksList() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea
+                  <Textarea 
                     id="description"
                     value={formData.description}
                     onChange={(e) =>
@@ -232,7 +232,7 @@ export function TasksList() {
                   <Label htmlFor="period">Period</Label>
                   <Select
                     value={formData.period}
-                    onValueChange={(value) =>
+                    onValueChange={(value: string) =>
                       setFormData({
                         ...formData,
                         period: value,

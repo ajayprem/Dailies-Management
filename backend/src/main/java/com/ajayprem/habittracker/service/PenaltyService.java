@@ -46,7 +46,9 @@ public class PenaltyService {
             dto.setId(String.valueOf(p.getId()));
             dto.setType(p.getType());
             dto.setTaskId(p.getTask() != null ? String.valueOf(p.getTask().getId()) : null);
+            dto.setFromUser(p.getFromUser() != null ? String.valueOf(p.getFromUser().getName()) : null);
             dto.setFromUserId(p.getFromUser() != null ? String.valueOf(p.getFromUser().getId()) : null);
+            dto.setToUser(p.getToUser() != null ? String.valueOf(p.getToUser().getName()) : null);
             dto.setToUserId(p.getToUser() != null ? String.valueOf(p.getToUser().getId()) : null);
             dto.setAmount(p.getAmount());
             dto.setReason(p.getReason());
@@ -62,7 +64,7 @@ public class PenaltyService {
      * - weekly: apply when yesterday was Sunday (so previous week just finished)
      * - monthly: apply when today is 1st of month (so previous month just finished)
      */
-    @Scheduled(cron = "0 5 0 * * *") // run daily at 00:05
+    @Scheduled(cron = "0 * * * * *") // run daily at 00:05
     @Transactional
     public void applyMissedTaskPenalties() {
         log.info("applyMissedTaskPenalties: start");

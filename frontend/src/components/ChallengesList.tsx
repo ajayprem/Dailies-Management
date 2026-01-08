@@ -251,7 +251,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="penalty">Penalty Amount ($)</Label>
+                <Label htmlFor="penalty">Penalty Amount (₹)</Label>
                 <Input
                   id="penalty"
                   type="number"
@@ -406,7 +406,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                       <span>{acceptedParticipants.length} participant(s)</span>
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Penalty: ${challenge.penaltyAmount}
+                      Penalty: ₹{challenge.penaltyAmount}
                     </div>
                     {userParticipant && (
                       <div className="text-sm text-gray-600 dark:text-gray-400">

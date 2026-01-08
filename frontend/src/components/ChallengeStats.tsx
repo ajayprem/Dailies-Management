@@ -246,7 +246,7 @@ export function ChallengeStats({
                   Penalty Amount:
                 </span>
                 <span className="flex items-center gap-1">
-                  <AlertTriangle className="w-4 h-4 text-orange-500" />$
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />₹
                   {challenge.penaltyAmount}
                 </span>
               </div>
