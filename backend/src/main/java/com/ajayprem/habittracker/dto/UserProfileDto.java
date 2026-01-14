@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 public class UserProfileDto {
-    private String id;
+    private Long id;
     private String email;
     private String name;
     private List<String> friends;

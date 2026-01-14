@@ -17,7 +17,7 @@ import { API_ENDPOINTS, apiCall } from "../config/api";
 
 interface PenaltiesViewProps {
   accessToken: string;
-  userId: string;
+  userId: number;
 }
 
 export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {

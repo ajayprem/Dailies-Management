@@ -85,7 +85,7 @@ public class AuthService {
 
         User user = optionalUser.get();
         UserProfileDto dto = new UserProfileDto();
-        dto.setId(String.valueOf(user.getId()));
+        dto.setId(user.getId());
         dto.setEmail(user.getEmail());
         dto.setName(user.getName());
         List<String> fr = new ArrayList<>();

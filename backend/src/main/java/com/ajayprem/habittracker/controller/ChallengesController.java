@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ajayprem.habittracker.dto.ChallengeDto;
-import com.ajayprem.habittracker.service.BackendService;
+import com.ajayprem.habittracker.service.ChallengeService;
 import com.ajayprem.habittracker.util.CurrentUser;
 
 @RestController
@@ -25,7 +25,7 @@ public class ChallengesController {
     private static final Logger log = LoggerFactory.getLogger(ChallengesController.class);
 
     @Autowired
-    private BackendService svc;
+    private ChallengeService challengeService;
 
     @GetMapping("")
     public ResponseEntity<?> getChallenges() {
@@ -33,7 +33,7 @@ public class ChallengesController {
         log.info("ChallengesController: getChallenges userId={}", userId);
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        List<ChallengeDto> list = svc.getChallenges(userId);
+        List<ChallengeDto> list = challengeService.getChallenges(userId);
         return ResponseEntity.ok(Map.of("challenges", list));
     }
 
@@ -44,7 +44,7 @@ public class ChallengesController {
         log.info("ChallengesController: create userId={} title={}", userId, body == null ? null : body.getTitle());
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        ChallengeDto created = svc.createChallenge(userId, body);
+        ChallengeDto created = challengeService.createChallenge(userId, body);
         return ResponseEntity.ok(Map.of("challenge", created));
     }
 
@@ -55,7 +55,18 @@ public class ChallengesController {
         log.info("ChallengesController: accept userId={} challengeId={}", userId, challengeId);
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        boolean ok = svc.acceptChallenge(userId, challengeId);
+        boolean ok = challengeService.acceptChallenge(userId, challengeId);
+        return ResponseEntity.ok(Map.of("success", ok));
+    }
+
+     @PostMapping("/{challengeId}/reject")
+    public ResponseEntity<?> reject(
+            @PathVariable String challengeId) {
+        final Long userId = CurrentUser.id();
+        log.info("ChallengesController: accept userId={} challengeId={}", userId, challengeId);
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
+        boolean ok = challengeService.rejectChallenge(userId, challengeId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
@@ -66,7 +77,18 @@ public class ChallengesController {
         log.info("ChallengesController: complete userId={} challengeId={}", userId, challengeId);
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        boolean ok = svc.completeChallenge(userId, challengeId);
+        boolean ok = challengeService.completeChallenge(userId, challengeId);
+        return ResponseEntity.ok(Map.of("success", ok));
+    }
+    
+    @PostMapping("/{challengeId}/uncomplete")
+    public ResponseEntity<?> uncomplete(
+            @PathVariable String challengeId) {
+        final Long userId = CurrentUser.id();
+        log.info("ChallengesController: uncomplete userId={} challengeId={}", userId, challengeId);
+        if (userId == null)
+            return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
+        boolean ok = challengeService.uncompleteChallenge(userId, challengeId);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 
@@ -79,7 +101,7 @@ public class ChallengesController {
         log.info("ChallengesController: penalty userId={} challengeId={} failedUserId={}", userId, challengeId, failedUserId);
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        Map<String, Object> resp = svc.applyChallengePenalty(userId, challengeId, failedUserId);
+        Map<String, Object> resp = challengeService.applyChallengePenalty(userId, challengeId, failedUserId);
         if (resp == null)
             return ResponseEntity.badRequest().body(Map.of("success", false));
         return ResponseEntity.ok(resp);

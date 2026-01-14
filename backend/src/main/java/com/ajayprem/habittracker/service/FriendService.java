@@ -63,7 +63,7 @@ public class FriendService {
         for (User u : users) {
             if (!seen.contains(u.getId())) {
                 UserProfileDto d = new UserProfileDto();
-                d.setId(String.valueOf(u.getId()));
+                d.setId(u.getId());
                 d.setEmail(u.getEmail());
                 d.setName(u.getName());
                 out.add(d);
@@ -75,7 +75,7 @@ public class FriendService {
         for (User u : users) {
             if (!seen.contains(u.getId())) {
                 UserProfileDto d = new UserProfileDto();
-                d.setId(String.valueOf(u.getId()));
+                d.setId(u.getId());
                 d.setEmail(u.getEmail());
                 d.setName(u.getName());
                 out.add(d);
@@ -104,7 +104,7 @@ public class FriendService {
         List<UserProfileDto> out = new ArrayList<>();
         for (User f : ou.get().getFriends()) {
             UserProfileDto d = new UserProfileDto();
-            d.setId(String.valueOf(f.getId()));
+            d.setId(f.getId());
             d.setName(f.getName());
             d.setEmail(f.getEmail());
             out.add(d);

@@ -16,7 +16,7 @@ import { toast } from "sonner";
 
 interface FriendsManagerProps {
   accessToken: string;
-  userId: string;
+  userId: number;
 }
 
 export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {

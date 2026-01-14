@@ -13,7 +13,7 @@ public class ChallengeDto {
     private String period;
     private double penaltyAmount;
     private List<Participant> participants;
-    private List<String> invitedUsers;
+    private List<Long> invitedUserIds;
     private String status;
     private String createdAt;
     private String nextDueDate;
@@ -22,7 +22,8 @@ public class ChallengeDto {
 
     @Data
     public static class Participant {
-        private String userId;
+        private Long userId;
+        private String name;
         private String status;
         private List<String> completedDates;
     }

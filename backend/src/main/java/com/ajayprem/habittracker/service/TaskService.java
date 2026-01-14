@@ -111,7 +111,7 @@ public class TaskService {
 
     public boolean uncompleteTaskForDate(Long uid, String taskIdStr, String dateStr) {
         log.info("uncompleteTaskForDate: uid={} taskId={} date={}", uid, taskIdStr, dateStr);
-        Long tid = Long.parseLong(taskIdStr);
+        Long tid = Long.valueOf(taskIdStr);
         Optional<Task> ot = taskRepository.findById(tid);
         if (ot.isEmpty()) {
             log.warn("uncompleteTaskForDate: task not found {}", tid);
@@ -161,7 +161,7 @@ public class TaskService {
 
     public Map<String, Object> getTaskStats(Long uid, String taskIdStr) {
         log.info("getTaskStats: uid={} taskId={}", uid, taskIdStr);
-        Long tid = Long.parseLong(taskIdStr);
+        Long tid = Long.valueOf(taskIdStr);
         Optional<Task> ot = taskRepository.findById(tid);
         if (ot.isEmpty()) {
             log.warn("getTaskStats: task not found {}", tid);
@@ -420,7 +420,7 @@ public class TaskService {
         }
         if (recipients != null && !recipients.isEmpty()) {
             for (String recipientId : recipients) {
-                Long pid = Long.parseLong(recipientId);
+                Long pid = Long.valueOf(recipientId);
                 userRepository.findById(pid).ifPresent(recipient -> t.getPenaltyRecipients().add(recipient));
             }
         }
@@ -440,7 +440,7 @@ public class TaskService {
 
     public Map<String, Object> applyTaskPenalty(Long uid, String taskIdStr) {
         log.info("applyTaskPenalty: uid={} taskId={}", uid, taskIdStr);
-        Long tid = Long.parseLong(taskIdStr);
+        Long tid = Long.valueOf(taskIdStr);
         Optional<Task> ot = taskRepository.findById(tid);
         if (ot.isEmpty()) {
             log.warn("applyTaskPenalty: task not found {}", tid);
@@ -484,7 +484,7 @@ public class TaskService {
         log.info("deleteTask: uid={} taskId={}", uid, taskIdStr);
         Long tid;
         try {
-            tid = Long.parseLong(taskIdStr);
+            tid = Long.valueOf(taskIdStr);
         } catch (Exception e) {
             log.warn("deleteTask: invalid task id {}", taskIdStr);
             return false;
@@ -568,7 +568,7 @@ public class TaskService {
     // String failedUserIdStr) {
     // log.info("applyChallengePenalty: uid={} challengeId={} failedUserId={}", uid,
     // challengeIdStr, failedUserIdStr);
-    // Long cid = Long.parseLong(challengeIdStr);
+    // Long cid = Long.valueOf(challengeIdStr);
     // Optional<Challenge> oc = challengeRepository.findById(cid);
     // if (oc.isEmpty()) {
     // log.warn("applyChallengePenalty: challenge not found: {}", cid);
@@ -577,7 +577,7 @@ public class TaskService {
     // Challenge c = oc.get();
     // Penalty p = new Penalty();
     // p.setType("challenge");
-    // userRepository.findById(Long.parseLong(failedUserIdStr)).ifPresent(p::setFromUser);
+    // userRepository.findById(Long.valueOf(failedUserIdStr)).ifPresent(p::setFromUser);
     // p.setToUser(c.getCreator());
     // p.setAmount(c.getPenaltyAmount());
     // p.setReason("Failed challenge: " + c.getTitle());

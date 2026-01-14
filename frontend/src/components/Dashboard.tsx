@@ -19,7 +19,7 @@ import { API_ENDPOINTS, apiCall } from "../config/api";
 interface DashboardProps {
   accessToken: string;
   userProfile: any;
-  userId: string;
+  userId: number;
   onLogout: () => void;
   darkMode: boolean;
   toggleDarkMode: () => void;

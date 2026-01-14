@@ -6,7 +6,7 @@ import { API_ENDPOINTS, apiCall } from "./config/api";
 
 export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [darkMode, setDarkMode] = useState(false);
@@ -57,7 +57,7 @@ export default function App() {
   const checkExistingSession = () => {
     try {
       const token = localStorage.getItem("authToken");
-      const uid = localStorage.getItem("userId");
+      const uid = Number(localStorage.getItem("userId"));
 
       if (token && uid) {
         setAccessToken(token);
@@ -72,8 +72,9 @@ export default function App() {
   };
 
   const handleAuthSuccess = (token: string, uid: string) => {
+    const uidn = Number(localStorage.getItem("userId"));
     setAccessToken(token);
-    setUserId(uid);
+    setUserId(uidn);
     fetchProfile();
   };
 

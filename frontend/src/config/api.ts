@@ -41,6 +41,8 @@ export const API_ENDPOINTS = {
     `${API_BASE_URL}/challenges/${challengeId}/uncomplete`,
   applyChallengePenalty: (challengeId: string) =>
     `${API_BASE_URL}/challenges/${challengeId}/penalty`,
+  rejectChallenge: (challengeId: string) =>
+    `${API_BASE_URL}/challenges/${challengeId}/reject`,
 
   // Penalties
   getPenalties: `${API_BASE_URL}/penalties`,
