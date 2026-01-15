@@ -72,23 +72,29 @@ public class ChallengesController {
 
     @PostMapping("/{challengeId}/complete")
     public ResponseEntity<?> complete(
-            @PathVariable String challengeId) {
+            @PathVariable String challengeId,
+            @RequestBody Map<String, String> body) {
         final Long userId = CurrentUser.id();
         log.info("ChallengesController: complete userId={} challengeId={}", userId, challengeId);
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        boolean ok = challengeService.completeChallenge(userId, challengeId);
+        String date = body.get("date");
+        log.info("ChallengesController: completeForDate userId={} challengeId={} date={}", userId, challengeId, date);
+        final boolean ok = challengeService.completeChallenge(userId, challengeId, date);
         return ResponseEntity.ok(Map.of("success", ok));
     }
     
     @PostMapping("/{challengeId}/uncomplete")
     public ResponseEntity<?> uncomplete(
-            @PathVariable String challengeId) {
+            @PathVariable String challengeId,
+            @RequestBody Map<String, String> body) {
         final Long userId = CurrentUser.id();
         log.info("ChallengesController: uncomplete userId={} challengeId={}", userId, challengeId);
         if (userId == null)
             return ResponseEntity.status(401).body(Map.of("error", "unauthorized"));
-        boolean ok = challengeService.uncompleteChallenge(userId, challengeId);
+        String date = body.get("date");
+        log.info("ChallengesController: completeForDate userId={} challengeId={} date={}", userId, challengeId, date);
+        boolean ok = challengeService.uncompleteChallenge(userId, challengeId, date);
         return ResponseEntity.ok(Map.of("success", ok));
     }
 

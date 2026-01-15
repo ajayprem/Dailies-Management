@@ -34,9 +34,14 @@ public class FriendService {
     private FriendRequestRepository friendRequestRepository;
 
     public List<UserProfileDto> searchByEmail(String query) {
+        final Long userId = CurrentUser.id();
+        log.info("searchByEmail: query='{}' userId='{}'", query, userId);
+        
         List<UserProfileDto> out = new ArrayList<>();
         Set<Long> seen = new HashSet<>();
-        final Long userId = CurrentUser.id();
+        if (userId != null) {
+            seen.add(userId);
+        }
 
         Optional<User> optionalUser = userRepository.findById(userId);
         if (optionalUser.isEmpty()) {
@@ -54,9 +59,9 @@ public class FriendService {
             seen.add(fr.getToUser().getId());
         }
 
-        log.info("searchByEmail: query='{}' userId='{}'", query, userId);
-        if (userId != null) {
-            seen.add(userId);
+        List<FriendRequest> receivedRequests = getFriendRequests(userId);
+        for (FriendRequest fr : receivedRequests) {
+            seen.add(fr.getFromUser().getId());
         }
 
         List<User> users = userRepository.findByEmailContaining(query);
@@ -71,7 +76,7 @@ public class FriendService {
             }
         }
 
-        users = userRepository.findByNameContaining(query);
+        users = userRepository.findByNameContainingIgnoreCase(query);
         for (User u : users) {
             if (!seen.contains(u.getId())) {
                 UserProfileDto d = new UserProfileDto();

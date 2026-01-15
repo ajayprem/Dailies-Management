@@ -128,6 +128,7 @@ public class TaskService {
             key = periodKeyFor(date, t.getPeriod());
         } catch (Exception e) {
             // parsing failed - nothing to remove
+            return false;
         }
 
         if (key != null && t.getCompletedDates().contains(key)) {

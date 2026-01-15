@@ -34,7 +34,7 @@ import com.ajayprem.habittracker.repository.UserRepository;
 @Service
 public class ChallengeService {
 
-    private static final Logger log = LoggerFactory.getLogger(TaskService.class);
+    private static final Logger log = LoggerFactory.getLogger(ChallengeService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -106,10 +106,9 @@ public class ChallengeService {
         c.setPeriod(input.getPeriod());
         c.setPenaltyAmount(input.getPenaltyAmount());
         if (input.getInvitedUserIds() != null) {
-
             c.setInvitedUsers(input.getInvitedUserIds());
         }
-        c.setStatus(input.getStatus() == null ? "active" : input.getStatus());
+        c.setStatus("pending");
         c.setCreatedAt(input.getCreatedAt() == null ? Instant.now().toString() : input.getCreatedAt());
         c.setNextDueDate(
                 input.getNextDueDate() == null ? LocalDate.now().plusDays(1).toString() : input.getNextDueDate());
@@ -151,6 +150,9 @@ public class ChallengeService {
         userRepository.findById(uid).ifPresent(np::setUser);
         np.setStatus("accepted");
         c.getParticipants().add(np);
+        if (c.getInvitedUsers().size() + 1 == c.getParticipants().size()) {
+            c.setStatus("active");
+        }
         challengeRepository.save(c);
         log.info("acceptChallenge: user {} accepted challenge {}", uid, cid);
         return true;
@@ -178,12 +180,13 @@ public class ChallengeService {
         userRepository.findById(uid).ifPresent(np::setUser);
         np.setStatus("rejected");
         c.getParticipants().add(np);
+        c.setStatus("rejected");
         challengeRepository.save(c);
         log.info("rejectChallenge: user {} rejected challenge {}", uid, cid);
         return true;
     }
 
-    public boolean completeChallenge(Long uid, String challengeIdStr) {
+    public boolean completeChallenge(Long uid, String challengeIdStr, String dateStr) {
         log.info("completeChallenge: uid={} challengeId={}", uid, challengeIdStr);
         Long cid = Long.valueOf(challengeIdStr);
         Optional<Challenge> oc = challengeRepository.findById(cid);
@@ -192,8 +195,37 @@ public class ChallengeService {
             return false;
         }
         Challenge c = oc.get();
+        
+        // Validate date format
+        LocalDate date;
+        try {
+            date = LocalDate.parse(dateStr);
+        } catch (Exception e) {
+            log.warn("completeTaskForDate: invalid date {}", dateStr);
+            return false;
+        }
+
         LocalDate today = LocalDate.now();
-        String key = periodKeyFor(today, c.getPeriod());
+        if (date.isAfter(today)) {
+            log.warn("completeTaskForDate: date {} is after today {}", date, today);
+            return false;
+        }
+
+        // Validate start/end date
+        if (c.getStartDate() != null && !c.getStartDate().isEmpty()) {
+            LocalDate start = LocalDate.parse(c.getStartDate());
+            if (date.isBefore(start)) {
+                return false;
+            }
+        }
+        if (c.getEndDate() != null && !c.getEndDate().isEmpty()) {
+            LocalDate end = LocalDate.parse(c.getEndDate());
+            if (date.isAfter(end)) {
+                return false;
+            }
+        }
+
+        String key = periodKeyFor(date, c.getPeriod());
         
         for (ChallengeParticipant p : c.getParticipants()) {
             if (Objects.equals(p.getUser().getId(), uid)) {
@@ -205,10 +237,11 @@ public class ChallengeService {
                 return true;
             }
         }
+        log.info("here"); 
         return false;
     }
 
-    public boolean uncompleteChallenge(Long uid, String challengeIdStr) {
+    public boolean uncompleteChallenge(Long uid, String challengeIdStr, String dateStr) {
         log.info("uncompleteChallenge: uid={} challengeId={}", uid, challengeIdStr);
         Long cid = Long.valueOf(challengeIdStr);
         Optional<Challenge> oc = challengeRepository.findById(cid);
@@ -217,8 +250,14 @@ public class ChallengeService {
             return false;
         }
         Challenge c = oc.get();
-        LocalDate today = LocalDate.now();
-        String key = periodKeyFor(today, c.getPeriod());
+        String key = null;
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            key = periodKeyFor(date, c.getPeriod());
+        } catch (Exception e) {
+            // parsing failed - nothing to remove
+            return false;
+        }
         
         for (ChallengeParticipant p : c.getParticipants()) {
             if (Objects.equals(p.getUser().getId(), uid)) {

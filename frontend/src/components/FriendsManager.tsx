@@ -156,7 +156,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
               {friendRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-800"
                 >
                   <div>
                     <p>{request.fromUser.name}</p>
@@ -242,7 +242,7 @@ export function FriendsManager({ accessToken, userId }: FriendsManagerProps) {
                 {searchResults.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-800"
                   >
                     <div>
                       <p>{user.name}</p>
