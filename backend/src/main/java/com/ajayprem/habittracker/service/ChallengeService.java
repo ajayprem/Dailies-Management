@@ -61,6 +61,34 @@ public class ChallengeService {
         return out;
     }
 
+    public String getFirstUncompletedDate(ChallengeParticipant participant, Challenge challenge) {
+        if (participant.getCompletedDates() == null || participant.getCompletedDates().isEmpty()) {
+            return challenge.getStartDate();
+        }
+
+        LocalDate startDate = parseToLocalDate(challenge.getStartDate());
+        LocalDate today = LocalDate.now();
+        if (startDate == null || today == null) {
+            return null;
+        }
+
+        LocalDate currentDate = startDate;
+        while (!currentDate.isEqual(today)) {
+            String key = periodKeyFor(currentDate, challenge.getPeriod());
+            if (!participant.getCompletedDates().contains(key)) {
+                return key;
+            }
+            // Move to next date based on period
+            switch (challenge.getPeriod().toLowerCase()) {
+                case "weekly" -> currentDate = currentDate.plusWeeks(1);
+                case "monthly" -> currentDate = currentDate.plusMonths(1);
+                default -> currentDate = currentDate.plusDays(1);
+            }
+        }
+
+        return null; // All dates completed
+    }
+
     public List<ChallengeDto> getChallenges(Long uid) {
         log.info("getChallenges: uid={}", uid);
         List<Challenge> list = getChallengesEntities(uid);
@@ -80,6 +108,7 @@ public class ChallengeService {
                 pd.setUserId(cp.getUser().getId());
                 pd.setStatus(cp.getStatus());
                 pd.setCompletedDates(cp.getCompletedDates());
+                pd.setLastUncompletedDate(getFirstUncompletedDate(cp, c));
                 parts.add(pd);
             }
             dto.setParticipants(parts);
@@ -299,16 +328,17 @@ public class ChallengeService {
             return null;
         String p = period == null ? "daily" : period.toLowerCase();
         switch (p) {
-            case "weekly": {
+            case "weekly" -> {
                 LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
                 return weekStart.toString();
             }
-            case "monthly": {
+            case "monthly" -> {
                 LocalDate monthStart = date.withDayOfMonth(1);
                 return monthStart.toString();
             }
-            default:
+            default -> {
                 return date.toString();
+            }
         }
     }
 

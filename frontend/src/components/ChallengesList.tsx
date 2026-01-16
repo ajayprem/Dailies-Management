@@ -42,10 +42,9 @@ import {
 import { Badge } from "./ui/badge";
 import { Checkbox } from "./ui/checkbox";
 import { API_ENDPOINTS, apiCall } from "../config/api";
-import { ChallengeStats } from "./ChallengeStats";
-import { DailyChallengesView } from "./DailyChallengesView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "./ui/alert";
 
 interface ChallengesListProps {
   accessToken: string;
@@ -59,6 +58,9 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
+  const [verificationTexts, setVerificationTexts] = useState<{
+    [key: string]: string;
+  }>({});
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -92,6 +94,16 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
     } catch (error) {
       console.error("Error fetching friends:", error);
     }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const handleCreateChallenge = async (e: React.FormEvent) => {
@@ -151,9 +163,35 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
     try {
       await apiCall(API_ENDPOINTS.completeChallenge(challengeId), {
         method: "POST",
-        body: JSON.stringify({ date: new Date().toISOString().split('T')[0] }),
+        body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
       });
       toast.success("Challenge completed! 🎉");
+      fetchChallenges();
+    } catch (error) {
+      console.error("Error completing challenge:", error);
+      toast.error("Failed to complete challenge");
+    }
+  };
+
+  const handleCompleteChallengeForDate = async (
+    challengeId: string,
+    date: string
+  ) => {
+    const verificationText = verificationTexts[challengeId] || "";
+    if (verificationText.toLowerCase().trim() !== "complete") {
+      toast.error('Please type "complete" to confirm');
+      return;
+    }
+
+    try {
+      await apiCall(API_ENDPOINTS.completeChallenge(challengeId), {
+        method: "POST",
+        body: JSON.stringify({ date }),
+      });
+      toast.success(
+        `Challenge completed for ${new Date(date).toLocaleDateString()}! 🎉`
+      );
+      setVerificationTexts((prev) => ({ ...prev, [challengeId]: "" }));
       fetchChallenges();
     } catch (error) {
       console.error("Error completing challenge:", error);
@@ -165,7 +203,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
     try {
       await apiCall(API_ENDPOINTS.uncompleteChallenge(challengeId), {
         method: "POST",
-        body: JSON.stringify({ date: new Date().toISOString().split('T')[0] }),
+        body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
       });
       toast.success("Challenge completion reset");
       fetchChallenges();
@@ -278,6 +316,11 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
       challenge.status === "failed" ||
       (challenge.endDate && new Date(challenge.endDate) < new Date());
 
+    const lastUncompletedDate = userParticipant?.lastUncompletedDate;
+    const verificationText = verificationTexts[challenge.id] || "";
+    const isVerificationValid =
+      verificationText.toLowerCase().trim() === "complete";
+
     // Build participant status list for pending challenges
     const getParticipantStatusList = () => {
       if (!isPending || isInvited) return null;
@@ -338,7 +381,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
       <Card
         key={challenge.id}
         className={
-          rejectedParticipant
+          rejectedParticipant || lastUncompletedDate
             ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20"
             : isInvited
             ? "border-indigo-300 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20"
@@ -531,33 +574,78 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                 </Button>
               </>
             ) : userParticipant ? (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    onClick={() => handleCompleteChallenge(challenge.id)}
-                    disabled={completedToday}
-                    variant={completedToday ? "secondary" : "default"}
-                  >
-                    {completedToday ? "Completed" : "Complete"}
-                  </Button>
-                  <Button
-                    onClick={() => handleResetChallenge(challenge.id)}
-                    disabled={!completedToday}
-                    variant="outline"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-1" />
-                    Reset
-                  </Button>
-                </div>
-                <Button
-                  onClick={() => handleOpenStats(challenge)}
-                  variant="ghost"
-                  className="w-full"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  View Stats & Calendar
-                </Button>
-              </>
+              lastUncompletedDate ? (
+                <>
+                  <AlertDescription className="text-orange-800 dark:text-orange-200">
+                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                      <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      <span className="font-medium">Catch up required:</span>{" "}
+                      You need to complete this challenge for{" "}
+                      <span className="font-semibold">
+                        {formatDate(lastUncompletedDate)}
+                      </span>{" "}
+                      before you can mark today as complete.
+                    </span>
+                  </AlertDescription>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Calendar className="w-4 h-4" />
+                      <span>
+                        Completing for: {formatDate(lastUncompletedDate)}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {/* <label className="text-sm text-gray-600 dark:text-gray-400">
+                      Type "complete" to confirm:
+                    </label> */}
+                      <Textarea
+                        value={verificationText}
+                        onChange={(e) =>
+                          setVerificationTexts((prev) => ({
+                            ...prev,
+                            [challenge.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="Type 'complete' here to confirm"
+                        className="h-12 resize-none"
+                      />
+                    </div>
+                    <Button
+                      onClick={() =>
+                        handleCompleteChallengeForDate(
+                          challenge.id,
+                          lastUncompletedDate
+                        )
+                      }
+                      disabled={!isVerificationValid}
+                      className="w-full"
+                      variant={isVerificationValid ? "default" : "secondary"}
+                    >
+                      Complete Challenge
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2 ">
+                    <Button
+                      onClick={() => handleCompleteChallenge(challenge.id)}
+                      disabled={completedToday}
+                      variant={completedToday ? "secondary" : "default"}
+                    >
+                      {completedToday ? "Completed" : "Complete"}
+                    </Button>
+                    <Button
+                      onClick={() => handleResetChallenge(challenge.id)}
+                      disabled={!completedToday}
+                      variant="outline"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-1" />
+                      Reset
+                    </Button>
+                  </div>
+                </>
+              )
             ) : null}
           </div>
         </CardContent>
@@ -856,26 +944,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
             )}
           </div>
         </TabsContent>
-
-        <TabsContent value="daily" className="mt-4">
-          <DailyChallengesView
-            challenges={activeChallenges}
-            userId={userId}
-            onChallengeUpdate={fetchChallenges}
-          />
-        </TabsContent>
       </Tabs>
-
-      {/* Challenge Stats Dialog */}
-      {selectedChallenge && (
-        <ChallengeStats
-          challenge={selectedChallenge}
-          userId={userId}
-          open={statsDialogOpen}
-          onOpenChange={setStatsDialogOpen}
-          onChallengeUpdate={fetchChallenges}
-        />
-      )}
     </div>
   );
 }

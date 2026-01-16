@@ -26,5 +26,6 @@ public class ChallengeDto {
         private String name;
         private String status;
         private List<String> completedDates;
+        private String lastUncompletedDate;
     }
 }
