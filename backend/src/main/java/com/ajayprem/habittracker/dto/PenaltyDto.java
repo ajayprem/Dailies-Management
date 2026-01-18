@@ -7,8 +7,8 @@ public class PenaltyDto {
     private String id;
     private String type;
     private String taskId;
-    private String fromUserId;
-    private String toUserId;
+    private Long fromUserId;
+    private Long toUserId;
     private String fromUser;
     private String toUser;
     private double amount;
