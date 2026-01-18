@@ -321,6 +321,8 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
     const isVerificationValid =
       verificationText.toLowerCase().trim() === "complete";
 
+    const participants = challenge.participants?.map((p: any) => p.name);
+
     // Build participant status list for pending challenges
     const getParticipantStatusList = () => {
       if (!isPending || isInvited) return null;
@@ -460,6 +462,9 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
               <span>
                 {acceptedParticipants.length} / {totalInvited} accepted
               </span>
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Participants: {participants?.join(", ")}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
               Penalty: ₹{challenge.penaltyAmount}
