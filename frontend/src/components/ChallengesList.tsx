@@ -383,7 +383,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
             : isPending
             ? "border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20"
             : isCompleted
-            ? "border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20"
+            ? "border-gray-300 dark:border-gray-700 bg-grey-50 dark:bg-gray-100/20"
             : ""
         }
       >
