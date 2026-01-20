@@ -31,7 +31,6 @@ import com.ajayprem.habittracker.model.User;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
 import com.ajayprem.habittracker.repository.TaskRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
-
 import static com.ajayprem.habittracker.util.DateUtils.periodKeyFor;
 
 @Service
@@ -573,12 +572,21 @@ public class TaskService {
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
-        List<Task> all = taskRepository.findAll();
+        // Load all tasks with completed dates
+        List<Task> all = taskRepository.findAllWithCompletedDates();
         
-        // Force initialization of collections while in transaction
+        // Load penalty recipients in a separate query and map them
+        Map<Long, List<User>> recipientsMap = new java.util.HashMap<>();
+        for (Task t : taskRepository.findAllWithPenaltyRecipients()) {
+            // Copy the list to avoid detached proxy issues
+            recipientsMap.put(t.getId(), new ArrayList<>(t.getPenaltyRecipients()));
+        }
+        
+        // Manually set penalty recipients without triggering lazy loading
         for (Task t : all) {
-            t.getCompletedDates().size();
-            t.getPenaltyRecipients().size();
+            if (recipientsMap.containsKey(t.getId())) {
+                t.setPenaltyRecipients(recipientsMap.get(t.getId()));
+            }
         }
 
         for (Task t : all) {
