@@ -160,7 +160,7 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
                       </div>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(penalty.createdAt).toLocaleDateString()}
+                      {new Date(penalty.periodKey).toLocaleDateString()}
                     </div>
                   </div>
                 );

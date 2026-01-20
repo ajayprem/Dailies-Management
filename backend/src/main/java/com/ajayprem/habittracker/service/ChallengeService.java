@@ -3,8 +3,6 @@ package com.ajayprem.habittracker.service;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,7 +17,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ajayprem.habittracker.dto.ChallengeDto;
 import com.ajayprem.habittracker.model.Challenge;
@@ -30,6 +30,9 @@ import com.ajayprem.habittracker.repository.ChallengeParticipantRepository;
 import com.ajayprem.habittracker.repository.ChallengeRepository;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
+import com.ajayprem.habittracker.util.DateUtils;
+
+import static com.ajayprem.habittracker.util.DateUtils.parseToLocalDate;
 
 @Service
 public class ChallengeService {
@@ -61,19 +64,22 @@ public class ChallengeService {
         return out;
     }
 
+    // TODO: fix this for different periods
     public String getFirstUncompletedDate(ChallengeParticipant participant, Challenge challenge) {
         if (participant.getCompletedDates() == null || participant.getCompletedDates().isEmpty()) {
             return challenge.getStartDate();
         }
 
         LocalDate startDate = parseToLocalDate(challenge.getStartDate());
+        LocalDate endDate = parseToLocalDate(challenge.getEndDate());
         LocalDate today = LocalDate.now();
         if (startDate == null || today == null) {
             return null;
         }
 
-        LocalDate currentDate = startDate;
-        while (!currentDate.isEqual(today)) {
+        LocalDate currentDate = DateUtils.periodKeyFor(startDate, challenge.getPeriod());
+        LocalDate finalDate = (endDate != null && endDate.isBefore(today)) ? endDate : today;
+        while (!currentDate.isEqual(finalDate)) {
             String key = periodKeyFor(currentDate, challenge.getPeriod());
             if (!participant.getCompletedDates().contains(key)) {
                 return key;
@@ -87,6 +93,10 @@ public class ChallengeService {
         }
 
         return null; // All dates completed
+    }
+
+    public boolean isChallengeCompletedByParticipant(Challenge challenge, ChallengeParticipant participant) {
+        return getFirstUncompletedDate(participant, challenge) == null;
     }
 
     public List<ChallengeDto> getChallenges(Long uid) {
@@ -224,7 +234,7 @@ public class ChallengeService {
             return false;
         }
         Challenge c = oc.get();
-        
+
         // Validate date format
         LocalDate date;
         try {
@@ -255,18 +265,19 @@ public class ChallengeService {
         }
 
         String key = periodKeyFor(date, c.getPeriod());
-        
+
         for (ChallengeParticipant p : c.getParticipants()) {
             if (Objects.equals(p.getUser().getId(), uid)) {
                 if (!p.getCompletedDates().contains(key)) {
                     p.getCompletedDates().add(key);
                     challengeParticipantRepository.save(p);
-                    log.info("completeChallenge: user {} completed challenge {} with key {} (period={})", uid, cid, key, c.getPeriod());
+                    log.info("completeChallenge: user {} completed challenge {} with key {} (period={})", uid, cid, key,
+                            c.getPeriod());
                 }
                 return true;
             }
         }
-        log.info("here"); 
+        log.info("here");
         return false;
     }
 
@@ -287,13 +298,14 @@ public class ChallengeService {
             // parsing failed - nothing to remove
             return false;
         }
-        
+
         for (ChallengeParticipant p : c.getParticipants()) {
             if (Objects.equals(p.getUser().getId(), uid)) {
                 if (p.getCompletedDates().contains(key)) {
                     p.getCompletedDates().remove(key);
                     challengeParticipantRepository.save(p);
-                    log.info("uncompleteChallenge: removed key {} for user {} challenge {} (period={})", key, uid, cid, c.getPeriod());
+                    log.info("uncompleteChallenge: removed key {} for user {} challenge {} (period={})", key, uid, cid,
+                            c.getPeriod());
                     return true;
                 }
                 return false;
@@ -338,21 +350,6 @@ public class ChallengeService {
             }
             default -> {
                 return date.toString();
-            }
-        }
-    }
-
-    private LocalDate parseToLocalDate(String s) {
-        if (s == null)
-            return null;
-        try {
-            return LocalDate.parse(s);
-        } catch (DateTimeParseException ex) {
-            try {
-                Instant inst = Instant.parse(s);
-                return inst.atZone(ZoneId.systemDefault()).toLocalDate();
-            } catch (Exception e) {
-                return null;
             }
         }
     }
@@ -413,7 +410,7 @@ public class ChallengeService {
                 return streak;
             }
             default -> {
-                List<LocalDate> dates = completedDates.stream().map(this::parseToLocalDate).filter(Objects::nonNull)
+                List<LocalDate> dates = completedDates.stream().map(x -> parseToLocalDate(x)).filter(Objects::nonNull)
                         .sorted(Collections.reverseOrder()).collect(Collectors.toList());
                 int streak = 0;
                 LocalDate today = LocalDate.now();
@@ -486,7 +483,7 @@ public class ChallengeService {
                 return longest;
             }
             default -> {
-                List<LocalDate> dates = completedDates.stream().map(this::parseToLocalDate).filter(Objects::nonNull)
+                List<LocalDate> dates = completedDates.stream().map(x -> parseToLocalDate(x)).filter(Objects::nonNull)
                         .sorted().collect(Collectors.toList());
                 if (dates.isEmpty())
                     return 0;
@@ -514,7 +511,7 @@ public class ChallengeService {
             return Map.of();
         }
         Challenge c = oc.get();
-        
+
         // Find participant for this user
         ChallengeParticipant userParticipant = null;
         for (ChallengeParticipant p : c.getParticipants()) {
@@ -523,21 +520,101 @@ public class ChallengeService {
                 break;
             }
         }
-        
+
         if (userParticipant == null) {
             log.warn("getChallengeStats: user {} not participant of challenge {}", uid, cid);
             return Map.of();
         }
-        
+
         List<String> completedDates = userParticipant.getCompletedDates();
         int totalCompletions = completedDates.size();
         int currentStreak = calcCurrentStreak(completedDates, c.getPeriod());
         int longestStreak = calcLongestStreak(completedDates, c.getPeriod());
-        
+
         return Map.of(
                 "totalCompletions", totalCompletions,
                 "currentStreak", currentStreak,
                 "longestStreak", longestStreak,
                 "penaltyAmount", c.getPenaltyAmount());
+    }
+
+    public List<Challenge> getAllChallenges() {
+        return challengeRepository.findAll();
+    }
+
+    public void setChallengeCompleted(Challenge c) {
+        c.setStatus("completed");
+        challengeRepository.save(c);
+    }
+
+    @Scheduled(cron = "0 * * * * *") // run daily at 00:05
+    public void applyPenalties() {
+        applyMissedChallengePenalties();
+    }
+
+    @Transactional
+    public void applyMissedChallengePenalties() {
+        log.info("applyMissedChallengePenalties: start");
+        LocalDate today = LocalDate.now();
+
+        List<Challenge> all = getAllChallenges();
+        for (Challenge c : all) {
+            try {
+                LocalDate challengeEndDate = DateUtils.parseToLocalDate(c.getEndDate());
+                if (c.getPenaltyAmount() <= 0 || !"active".equalsIgnoreCase(c.getStatus())
+                        || !today.isAfter(challengeEndDate)) {
+                    continue;
+                }
+
+                setChallengeCompleted(c);
+                applyPenaltiesForChallenge(c);
+            } catch (Exception e) {
+                log.warn("applyMissedTaskPenalties: failed for task id={} reason={}", c.getId(), e.getMessage());
+            }
+        }
+
+        log.info("applyMissedTaskPenalties: end");
+    }
+
+    private void applyPenaltiesForChallenge(Challenge c) {
+
+        List<ChallengeParticipant> penaltyOwer = new ArrayList<>();
+        List<ChallengeParticipant> penaltyRecipient = new ArrayList<>();
+
+        for (ChallengeParticipant cp : c.getParticipants()) {
+            if (isChallengeCompletedByParticipant(c, cp)) {
+                penaltyOwer.add(cp);
+            } else {
+                penaltyRecipient.add(cp);
+            }
+        }
+
+        if (penaltyOwer.isEmpty() || penaltyRecipient.isEmpty()) {
+            return;
+        }
+
+        for (ChallengeParticipant ower : penaltyOwer) {
+            for (ChallengeParticipant recipient : penaltyRecipient) {
+                try {
+                    Penalty p = new Penalty();
+                    p.setChallenge(c);
+                    p.setType("challenge");
+                    p.setTask(null);
+                    p.setFromUser(ower.getUser());
+                    p.setToUser(recipient.getUser());
+                    p.setAmount(c.getPenaltyAmount());
+                    p.setReason("Failed to complete challenge: " + c.getTitle());
+                    p.setCreatedAt(Instant.now().toString());
+                    // p.setPeriodKey("challenge");
+                    penaltyRepository.save(p);
+                    log.info("applyMissedChallengePenalties: created penalty id={} challengeId={} toUser={} amount={}",
+                            p.getId(), c.getId(), recipient.getUser().getId(), p.getAmount());
+                } catch (Exception e) {
+                    log.warn(
+                            "applyMissedChallengePenalties: failed to create penalty for challenge {} recipient {}: {}",
+                            c.getId(), recipient == null ? null : recipient.getUser().getId(), e.getMessage());
+                }
+            }
+        }
     }
 }

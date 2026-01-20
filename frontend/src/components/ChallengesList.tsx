@@ -56,8 +56,6 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
   const [friends, setFriends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
-  const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [verificationTexts, setVerificationTexts] = useState<{
     [key: string]: string;
   }>({});
@@ -211,11 +209,6 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
       console.error("Error resetting challenge:", error);
       toast.error("Failed to reset challenge");
     }
-  };
-
-  const handleOpenStats = (challenge: any) => {
-    setSelectedChallenge(challenge);
-    setStatsDialogOpen(true);
   };
 
   const toggleFriendSelection = (friendId: string) => {
@@ -567,17 +560,6 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                   : rejectedParticipant?.name}{" "}
                 declined this challenge invitation.
               </div>
-            ) : isCompleted ? (
-              <>
-                <Button
-                  onClick={() => handleOpenStats(challenge)}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  View Final Stats
-                </Button>
-              </>
             ) : userParticipant ? (
               lastUncompletedDate ? (
                 <>

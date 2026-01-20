@@ -3,6 +3,9 @@ package com.ajayprem.habittracker.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -36,6 +39,7 @@ public class Task {
 
     @ManyToMany
     @JoinTable(name = "task_penalty_recipients", joinColumns = @JoinColumn(name = "task_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
+    @Fetch(FetchMode.SUBSELECT)
     private List<User> penaltyRecipients = new ArrayList<>();
 
     private String status;
@@ -43,6 +47,7 @@ public class Task {
     @ElementCollection
     @CollectionTable(name = "task_completed_dates", joinColumns = @JoinColumn(name = "task_id"))
     @Column(name = "completed_date")
+    @Fetch(FetchMode.SUBSELECT)
     private List<String> completedDates = new ArrayList<>();
 
     private String createdAt;

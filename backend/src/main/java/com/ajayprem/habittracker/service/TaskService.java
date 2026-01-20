@@ -19,7 +19,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ajayprem.habittracker.dto.TaskDto;
 import com.ajayprem.habittracker.dto.UserDto;
@@ -29,6 +31,8 @@ import com.ajayprem.habittracker.model.User;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
 import com.ajayprem.habittracker.repository.TaskRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
+
+import static com.ajayprem.habittracker.util.DateUtils.periodKeyFor;
 
 @Service
 public class TaskService {
@@ -86,7 +90,7 @@ public class TaskService {
         }
 
         // compute canonical key for the task's period (daily/weekly/monthly)
-        String key = periodKeyFor(date, t.getPeriod());
+        String key = periodKeyFor(date, t.getPeriod()).toString();
         // Add canonical key if not present
         if (!t.getCompletedDates().contains(key)) {
             t.getCompletedDates().add(key);
@@ -125,7 +129,7 @@ public class TaskService {
         String key = null;
         try {
             LocalDate date = LocalDate.parse(dateStr);
-            key = periodKeyFor(date, t.getPeriod());
+            key = periodKeyFor(date, t.getPeriod()).toString();
         } catch (Exception e) {
             // parsing failed - nothing to remove
             return false;
@@ -139,25 +143,6 @@ public class TaskService {
         }
 
         return false;
-    }
-
-    private String periodKeyFor(LocalDate date, String period) {
-        if (date == null)
-            return null;
-        String p = period == null ? "daily" : period.toLowerCase();
-        switch (p) {
-            case "weekly": {
-                LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-                return weekStart.toString();
-            }
-            case "monthly": {
-                LocalDate monthStart = date.withDayOfMonth(1);
-                return monthStart.toString();
-            }
-            default:
-                return date.toString();
-        }
-
     }
 
     public Map<String, Object> getTaskStats(Long uid, String taskIdStr) {
@@ -478,7 +463,8 @@ public class TaskService {
     }
 
     /**
-     * Delete a task and its related information (penalties and penalty-recipient links).
+     * Delete a task and its related information (penalties and penalty-recipient
+     * links).
      * Returns true if deletion was successful.
      */
     public boolean deleteTask(Long uid, String taskIdStr) {
@@ -502,7 +488,8 @@ public class TaskService {
         }
 
         try {
-            // Clear penalty recipients link to avoid orphaned join table rows (safer cleanup)
+            // Clear penalty recipients link to avoid orphaned join table rows (safer
+            // cleanup)
             if (t.getPenaltyRecipients() != null && !t.getPenaltyRecipients().isEmpty()) {
                 t.getPenaltyRecipients().clear();
                 taskRepository.save(t);
@@ -565,28 +552,104 @@ public class TaskService {
         return out;
     }
 
-    // public Map<String, Object> applyTaskPenalty(Long uid, String challengeIdStr,
-    // String failedUserIdStr) {
-    // log.info("applyChallengePenalty: uid={} challengeId={} failedUserId={}", uid,
-    // challengeIdStr, failedUserIdStr);
-    // Long cid = Long.valueOf(challengeIdStr);
-    // Optional<Challenge> oc = challengeRepository.findById(cid);
-    // if (oc.isEmpty()) {
-    // log.warn("applyChallengePenalty: challenge not found: {}", cid);
-    // return null;
-    // }
-    // Challenge c = oc.get();
-    // Penalty p = new Penalty();
-    // p.setType("challenge");
-    // userRepository.findById(Long.valueOf(failedUserIdStr)).ifPresent(p::setFromUser);
-    // p.setToUser(c.getCreator());
-    // p.setAmount(c.getPenaltyAmount());
-    // p.setReason("Failed challenge: " + c.getTitle());
-    // p.setCreatedAt(Instant.now().toString());
-    // penaltyRepository.save(p);
-    // log.info("applyChallengePenalty: penalty created id={} amount={}", p.getId(),
-    // p.getAmount());
-    // return Map.of("success", true, "penaltyId", String.valueOf(p.getId()));
-    // }
+    public List<Task> getAllTasks() {
+        return taskRepository.findAll();
+    }
+
+    @Scheduled(cron = "0 * * * * *") // run daily at 00:05
+    public void applyPenalties() {
+        applyMissedTaskPenalties();
+    }
+
+    /**
+     * Apply penalties for missed tasks based on their period:
+     * - daily: apply for yesterday
+     * - weekly: apply when yesterday was Sunday (so previous week just finished)
+     * - monthly: apply when today is 1st of month (so previous month just finished)
+     */
+    @Transactional(readOnly = false)
+    public void applyMissedTaskPenalties() {
+        log.info("applyMissedTaskPenalties: start");
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+
+        List<Task> all = taskRepository.findAll();
+        
+        // Force initialization of collections while in transaction
+        for (Task t : all) {
+            t.getCompletedDates().size();
+            t.getPenaltyRecipients().size();
+        }
+
+        for (Task t : all) {
+            try {
+                if (t.getPenaltyAmount() <= 0 || "inactive".equalsIgnoreCase(t.getStatus()))
+                    continue;
+
+                String period = t.getPeriod() == null ? "daily" : t.getPeriod().toLowerCase();
+
+                switch (period) {
+                    case "daily" -> {
+                        String key = yesterday.toString();
+                        if (t.getCompletedDates().contains(key))
+                            continue;
+                        applyPenaltiesForTaskPeriod(t, key);
+                    }
+                    case "weekly" -> {
+                        // run only when yesterday was Sunday (week ended)
+                        if (yesterday.getDayOfWeek() != DayOfWeek.SUNDAY)
+                            continue;
+                        LocalDate weekStart = yesterday.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+                        String key = weekStart.toString();
+                        if (t.getCompletedDates().contains(key))
+                            continue;
+                        applyPenaltiesForTaskPeriod(t, key);
+                    }
+                    case "monthly" -> {
+                        // run only when today is 1st of month
+                        if (today.getDayOfMonth() != 1)
+                            continue;
+                        LocalDate monthStart = today.minusMonths(1).withDayOfMonth(1);
+                        String key = monthStart.toString();
+                        if (t.getCompletedDates().contains(key))
+                            continue;
+                        applyPenaltiesForTaskPeriod(t, key);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("applyMissedTaskPenalties: failed for task id={} reason={}", t.getId(), e.getMessage());
+            }
+        }
+
+        log.info("applyMissedTaskPenalties: end");
+    }
+
+    private void applyPenaltiesForTaskPeriod(Task t, String periodKey) {
+        if (t.getPenaltyRecipients() == null || t.getPenaltyRecipients().isEmpty())
+            return;
+        for (User recipient : t.getPenaltyRecipients())
+            try {
+                // avoid duplicates per recipient
+                if (penaltyRepository.existsByTaskIdAndPeriodKeyAndToUserId(t.getId(), periodKey,
+                        recipient.getId())) {
+                    continue;
+                }
+                Penalty p = new Penalty();
+                p.setType("task");
+                p.setTask(t);
+                p.setFromUser(t.getUser());
+                p.setToUser(recipient);
+                p.setAmount(t.getPenaltyAmount());
+                p.setReason("Missed task: " + t.getTitle());
+                p.setCreatedAt(Instant.now().toString());
+                p.setPeriodKey(periodKey);
+                penaltyRepository.save(p);
+                log.info("applyMissedTaskPenalties: created penalty id={} taskId={} toUser={} amount={} periodKey={}",
+                        p.getId(), t.getId(), recipient.getId(), p.getAmount(), periodKey);
+            } catch (Exception e) {
+                log.warn("applyMissedTaskPenalties: failed to create penalty for task {} recipient {}: {}",
+                        t.getId(), recipient == null ? null : recipient.getId(), e.getMessage());
+            }
+    }
 
 }
