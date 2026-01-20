@@ -357,7 +357,7 @@ public class TaskService {
         LocalDate created;
         String startDate = t.getStartDate();
         try {
-            created = LocalDate.parse(startDate);
+            created = periodKeyFor(LocalDate.parse(startDate), t.getPeriod());
         } catch (DateTimeParseException ex) {
             try {
                 Instant inst = Instant.parse(startDate);
@@ -367,6 +367,15 @@ public class TaskService {
             }
         }
         LocalDate today = LocalDate.now();
+        if (t.getEndDate() != null && !t.getEndDate().isEmpty()) {
+            try {
+                LocalDate end = LocalDate.parse(t.getEndDate());
+                if (end.isBefore(today)) {
+                    today = end;
+                }
+            } catch (Exception e) {
+            }
+        }
         long days = java.time.temporal.ChronoUnit.DAYS.between(created, today) + 1;
         int expectedCompletions = 1;
         if ("daily".equalsIgnoreCase(t.getPeriod())) {
@@ -574,14 +583,14 @@ public class TaskService {
 
         // Load all tasks with completed dates
         List<Task> all = taskRepository.findAllWithCompletedDates();
-        
+
         // Load penalty recipients in a separate query and map them
         Map<Long, List<User>> recipientsMap = new java.util.HashMap<>();
         for (Task t : taskRepository.findAllWithPenaltyRecipients()) {
             // Copy the list to avoid detached proxy issues
             recipientsMap.put(t.getId(), new ArrayList<>(t.getPenaltyRecipients()));
         }
-        
+
         // Manually set penalty recipients without triggering lazy loading
         for (Task t : all) {
             if (recipientsMap.containsKey(t.getId())) {
