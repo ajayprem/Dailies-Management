@@ -579,9 +579,9 @@ public class ChallengeService {
 
         for (ChallengeParticipant cp : c.getParticipants()) {
             if (isChallengeCompletedByParticipant(c, cp)) {
-                penaltyOwer.add(cp);
-            } else {
                 penaltyRecipient.add(cp);
+            } else {
+                penaltyOwer.add(cp);
             }
         }
 
