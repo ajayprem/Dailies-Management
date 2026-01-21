@@ -31,7 +31,6 @@ import com.ajayprem.habittracker.repository.ChallengeRepository;
 import com.ajayprem.habittracker.repository.PenaltyRepository;
 import com.ajayprem.habittracker.repository.UserRepository;
 import com.ajayprem.habittracker.util.DateUtils;
-
 import static com.ajayprem.habittracker.util.DateUtils.parseToLocalDate;
 
 @Service
@@ -546,18 +545,15 @@ public class ChallengeService {
         c.setStatus("completed");
         challengeRepository.save(c);
     }
-
+    
     @Scheduled(cron = "0 * * * * *") // run daily at 00:05
-    public void applyPenalties() {
-        applyMissedChallengePenalties();
-    }
-
     @Transactional
     public void applyMissedChallengePenalties() {
         log.info("applyMissedChallengePenalties: start");
         LocalDate today = LocalDate.now();
 
-        List<Challenge> all = getAllChallenges();
+        // Load all challenges with participants
+        List<Challenge> all = challengeRepository.findAll();
         for (Challenge c : all) {
             try {
                 LocalDate challengeEndDate = DateUtils.parseToLocalDate(c.getEndDate());
@@ -566,14 +562,14 @@ public class ChallengeService {
                     continue;
                 }
 
-                setChallengeCompleted(c);
                 applyPenaltiesForChallenge(c);
+                setChallengeCompleted(c);
             } catch (Exception e) {
-                log.warn("applyMissedTaskPenalties: failed for task id={} reason={}", c.getId(), e.getMessage());
+                log.warn("applyMissedChallengePenalties: failed for challenge id={} reason={}", c.getId(), e.getMessage());
             }
         }
 
-        log.info("applyMissedTaskPenalties: end");
+        log.info("applyMissedChallengePenalties: end");
     }
 
     private void applyPenaltiesForChallenge(Challenge c) {
@@ -588,6 +584,8 @@ public class ChallengeService {
                 penaltyRecipient.add(cp);
             }
         }
+
+        log.info(penaltyOwer +" "+ penaltyRecipient);
 
         if (penaltyOwer.isEmpty() || penaltyRecipient.isEmpty()) {
             return;
