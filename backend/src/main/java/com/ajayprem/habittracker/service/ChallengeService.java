@@ -274,11 +274,24 @@ public class ChallengeService {
                     challengeParticipantRepository.save(p);
                     log.info("completeChallenge: user {} completed challenge {} with key {} (period={})", uid, cid, key,
                             c.getPeriod());
+                    // remove any penalties for this task+period (if scheduled job created them)
+                    try {
+                        List<Penalty> existing = penaltyRepository.findByChallengeIdAndFromUserId(challengeIdStr, uid);
+                        for (Penalty penalty : existing) {
+                            penaltyRepository.delete(penalty);
+                            log.info("completeChallenge: removed penalty id={} for challenge {} uid={}", p.getId(),
+                                    challengeIdStr,
+                                    uid);
+                        }
+                    } catch (Exception e) {
+                        log.warn("completeChallenge: failed to remove penalties for challenge {} uid {}: {}", challengeIdStr, uid,
+                                e.getMessage());
+                    }
                 }
                 return true;
             }
         }
-        log.info("here");
+
         return false;
     }
 
@@ -547,7 +560,7 @@ public class ChallengeService {
         c.setStatus("completed");
         challengeRepository.save(c);
     }
-    
+
     @Scheduled(cron = "0 * * * * *") // run daily at 00:05 todo
     @Transactional
     public void applyMissedChallengePenalties() {
@@ -567,7 +580,8 @@ public class ChallengeService {
                 applyPenaltiesForChallenge(c);
                 setChallengeCompleted(c);
             } catch (Exception e) {
-                log.warn("applyMissedChallengePenalties: failed for challenge id={} reason={}", c.getId(), e.getMessage());
+                log.warn("applyMissedChallengePenalties: failed for challenge id={} reason={}", c.getId(),
+                        e.getMessage());
             }
         }
 
