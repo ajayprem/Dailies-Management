@@ -191,6 +191,8 @@ public class ChallengeService {
         if (c.getInvitedUsers().size() + 1 == c.getParticipants().size()) {
             c.setStatus("active");
         }
+        // set the start date to today when accepted by any new user
+        c.setStartDate(LocalDate.now().toString());
         challengeRepository.save(c);
         log.info("acceptChallenge: user {} accepted challenge {}", uid, cid);
         return true;

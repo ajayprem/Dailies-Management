@@ -123,7 +123,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
         penaltyAmount: "",
         invitedUserIds: [],
         startDate: new Date().toISOString().split("T")[0], // Default to today
-        endDate: "", // Optional
+        endDate: "",
       });
       fetchChallenges();
     } catch (error) {
@@ -767,7 +767,7 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDate">End Date (Optional)</Label>
+                <Label htmlFor="endDate">End Date</Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -784,16 +784,14 @@ export function ChallengesList({ accessToken, userId }: ChallengesListProps) {
                           .split("T")[0]
                       : new Date().toISOString().split("T")[0]
                   }
+                  required
                 />
-                <p className="text-xs text-gray-500">
-                  Leave blank for ongoing challenge
-                </p>
               </div>
               <Button
                 type="submit"
                 className="w-full"
                 disabled={
-                  friends.length === 0 || formData.invitedUserIds.length === 0
+                  friends.length === 0 || formData.invitedUserIds.length === 0 || formData.endDate == ""
                 }
               >
                 Create Challenge
