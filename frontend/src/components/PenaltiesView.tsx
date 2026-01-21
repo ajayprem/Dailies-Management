@@ -143,14 +143,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
                             <span className="text-sm font-medium">
                               {isOwed ? 'To: ' : 'From: '}
                               <span className={isOwed ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}>
-                                {otherUser.name}
+                                {otherUser}
                               </span>
                             </span>
-                            {otherUser.email && (
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                ({otherUser.email})
-                              </span>
-                            )}
                           </div>
                         )}
                         <p className="text-sm">{penalty.reason}</p>
