@@ -563,41 +563,26 @@ public class TaskService {
     public List<Task> getAllTasks() {
         return taskRepository.findAll();
     }
-    
+
     /**
      * Apply penalties for missed tasks based on their period:
      * - daily: apply for yesterday
      * - weekly: apply when yesterday was Sunday (so previous week just finished)
      * - monthly: apply when today is 1st of month (so previous month just finished)
      */
-    @Scheduled(cron = "0 * * * * *") // run daily at 00:05
+    @Scheduled(cron = "0 * * * * *") // run daily at 00:05 todo
     @Transactional(readOnly = false)
     public void applyMissedTaskPenalties() {
         log.info("applyMissedTaskPenalties: start");
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
-        // Load all tasks with completed dates
         List<Task> all = taskRepository.findAll();
-
-        // // Load penalty recipients in a separate query and map them
-        // Map<Long, List<User>> recipientsMap = new java.util.HashMap<>();
-        // for (Task t : taskRepository.findAllWithPenaltyRecipients()) {
-        //     // Copy the list to avoid detached proxy issues
-        //     recipientsMap.put(t.getId(), new ArrayList<>(t.getPenaltyRecipients()));
-        // }
-
-        // // Manually set penalty recipients without triggering lazy loading
-        // for (Task t : all) {
-        //     if (recipientsMap.containsKey(t.getId())) {
-        //         t.setPenaltyRecipients(recipientsMap.get(t.getId()));
-        //     }
-        // }
 
         for (Task t : all) {
             try {
-                // if (t.getPenaltyAmount() <= 0 || "inactive".equalsIgnoreCase(t.getStatus()))
-                //     continue;
+                if (t.getPenaltyAmount() <= 0 || "inactive".equalsIgnoreCase(t.getStatus()))
+                    continue;
 
                 String period = t.getPeriod() == null ? "daily" : t.getPeriod().toLowerCase();
                 log.info("here:" + period);

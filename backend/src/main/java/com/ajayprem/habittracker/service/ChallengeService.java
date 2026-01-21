@@ -546,7 +546,7 @@ public class ChallengeService {
         challengeRepository.save(c);
     }
     
-    @Scheduled(cron = "0 * * * * *") // run daily at 00:05
+    @Scheduled(cron = "0 * * * * *") // run daily at 00:05 todo
     @Transactional
     public void applyMissedChallengePenalties() {
         log.info("applyMissedChallengePenalties: start");
@@ -584,8 +584,6 @@ public class ChallengeService {
                 penaltyRecipient.add(cp);
             }
         }
-
-        log.info(penaltyOwer +" "+ penaltyRecipient);
 
         if (penaltyOwer.isEmpty() || penaltyRecipient.isEmpty()) {
             return;
