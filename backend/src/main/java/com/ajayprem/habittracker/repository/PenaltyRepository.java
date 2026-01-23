@@ -19,5 +19,7 @@ public interface PenaltyRepository extends JpaRepository<Penalty, Long> {
 
     List<Penalty> findByTaskId(Long taskId);
 
-    List<Penalty> findByChallengeIdAndFromUserId(String challengeId, Long fromUserId);
+    List<Penalty> findByChallengeIdAndFromUserId(Long challengeId, Long fromUserId);
+
+    List<Penalty> findByFromUserIdAndToUserId(Long fromUserId, Long toUserId);
 }

@@ -15,4 +15,5 @@ public class PenaltyDto {
     private String reason;
     private String createdAt;
     private String periodKey;
+   
 }

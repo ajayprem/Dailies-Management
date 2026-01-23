@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
 
   // Penalties
   getPenalties: `${API_BASE_URL}/penalties`,
+  payPenalty: (friendId: string) => `${API_BASE_URL}/penalties/${friendId}`,
 };
 
 // Helper function for API calls

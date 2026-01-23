@@ -6,14 +6,11 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import {
-  TrendingUp,
-  TrendingDown,
-  IndianRupee,
-  User
-} from "lucide-react";
+import { TrendingUp, TrendingDown, IndianRupee, User } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { API_ENDPOINTS, apiCall } from "../config/api";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 
 interface PenaltiesViewProps {
   accessToken: string;
@@ -23,15 +20,35 @@ interface PenaltiesViewProps {
 export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
   const [penalties, setPenalties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [owed, setOwed] = useState(0);
+  const [receiving, setReceiving] = useState(0);
+  const [owedList, setOwedList] = useState<any[]>([]);
 
   useEffect(() => {
     fetchPenalties();
   }, []);
 
+  const handlePayPenalty = async (friendId: string) => {
+    try {
+      const response = await apiCall(API_ENDPOINTS.payPenalty(friendId), {
+        method: "DELETE",
+      });
+      console.log("Penalty paid successfully:", response);
+      fetchPenalties();
+      // Optionally, refresh the penalties list or update the UI accordingly
+    } catch (error) {
+      console.error("Error paying penalty:", error);
+    }
+  };
+
   const fetchPenalties = async () => {
     try {
       const data = await apiCall(API_ENDPOINTS.getPenalties);
-      setPenalties(data.penalties || []);
+      setPenalties(data.penaltySummary.penalties || []);
+      setOwed(data.penaltySummary.totalOwed || 0);
+      setReceiving(data.penaltySummary.totalReceived || 0);
+      setOwedList(data.penaltySummary.owedList || []);
+      console.log("Fetched penalties:", owedList);
     } catch (error) {
       console.error("Error fetching penalties:", error);
     } finally {
@@ -39,23 +56,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
     }
   };
 
-  const calculateTotals = () => {
-    const owed = penalties
-      .filter((p) => p.fromUserId === userId)
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const receiving = penalties
-      .filter((p) => p.toUserId === userId)
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    return { owed, receiving };
-  };
-
   if (loading) {
     return <div className="text-center py-8">Loading penalties...</div>;
   }
-
-  const { owed, receiving } = calculateTotals();
 
   return (
     <div className="space-y-6">
@@ -99,6 +102,35 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
         </Card>
       </div>
 
+      {owedList.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Summary</CardTitle>
+            <CardDescription>
+              Search for users by email/username
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 ">
+              {owedList.map((friend) => (
+                <div
+                  key={friend.id}
+                  className="p-4 bg-gray-50 flex items-center justify-between rounded-lg dark:text-gray-400 dark:bg-gray-800"
+                >
+                  <div>
+                    <p>{friend.name}</p>
+                    <p className="text-sm text-gray-600">{friend.email}</p>
+                  </div>
+                  <Button onClick={() => handlePayPenalty(friend.id)}>
+                    Pay {friend.name} {friend.amount}{" "}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Penalties List */}
       <Card>
         <CardHeader>
@@ -122,27 +154,37 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
                 const otherUser = isOwed ? penalty.toUser : penalty.fromUser;
                 return (
                   <div
-                     key={penalty.id}
+                    key={penalty.id}
                     className={`p-4 rounded-lg border ${
-                      isOwed ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                      isOwed
+                        ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                        : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
                     }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <Badge variant={isOwed ? 'destructive' : 'default'}>
-                            {isOwed ? 'You Owe' : 'You Receive'}
+                          <Badge variant={isOwed ? "destructive" : "default"}>
+                            {isOwed ? "You Owe" : "You Receive"}
                           </Badge>
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            {penalty.type === 'task' ? 'Task Penalty' : 'Challenge Penalty'}
+                            {penalty.type === "task"
+                              ? "Task Penalty"
+                              : "Challenge Penalty"}
                           </span>
                         </div>
                         {otherUser && (
                           <div className="flex items-center gap-2 mb-2">
                             <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                             <span className="text-sm font-medium">
-                              {isOwed ? 'To: ' : 'From: '}
-                              <span className={isOwed ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}>
+                              {isOwed ? "To: " : "From: "}
+                              <span
+                                className={
+                                  isOwed
+                                    ? "text-red-700 dark:text-red-300"
+                                    : "text-green-700 dark:text-green-300"
+                                }
+                              >
                                 {otherUser}
                               </span>
                             </span>
@@ -150,7 +192,9 @@ export function PenaltiesView({ accessToken, userId }: PenaltiesViewProps) {
                         )}
                         <p className="text-sm">{penalty.reason}</p>
                       </div>
-                      <div className={`text-xl ${isOwed ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                      <div
+                        className={`text-xl ${isOwed ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
+                      >
                         ₹{penalty.amount.toFixed(2)}
                       </div>
                     </div>

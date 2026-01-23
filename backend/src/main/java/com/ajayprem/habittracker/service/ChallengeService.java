@@ -276,7 +276,7 @@ public class ChallengeService {
                             c.getPeriod());
                     // remove any penalties for this task+period (if scheduled job created them)
                     try {
-                        List<Penalty> existing = penaltyRepository.findByChallengeIdAndFromUserId(challengeIdStr, uid);
+                        List<Penalty> existing = penaltyRepository.findByChallengeIdAndFromUserId(Long.valueOf(challengeIdStr), uid);
                         for (Penalty penalty : existing) {
                             penaltyRepository.delete(penalty);
                             log.info("completeChallenge: removed penalty id={} for challenge {} uid={}", p.getId(),
