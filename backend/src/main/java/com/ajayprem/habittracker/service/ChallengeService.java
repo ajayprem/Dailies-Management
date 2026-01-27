@@ -63,12 +63,7 @@ public class ChallengeService {
         return out;
     }
 
-    // TODO: fix this for different periods
     public String getFirstUncompletedDate(ChallengeParticipant participant, Challenge challenge) {
-        if (participant.getCompletedDates() == null || participant.getCompletedDates().isEmpty()) {
-            return challenge.getStartDate();
-        }
-
         LocalDate startDate = parseToLocalDate(challenge.getStartDate());
         LocalDate endDate = parseToLocalDate(challenge.getEndDate());
         LocalDate today = LocalDate.now();
